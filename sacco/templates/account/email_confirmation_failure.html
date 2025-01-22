@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Confirmation Failed</title>
+    <style>
+        /* Reset default styles */
+        body, h1, p, a {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f1f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            text-align: center;
+            background: #fff;
+            padding: 2rem 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            max-width: 480px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #d9534f;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        form {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 0.5rem;
+            display: block;
+            text-align: left;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            outline: none;
+        }
+
+        input[type="email"]:focus {
+            border-color: #007bff;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        a {
+            display: inline-block;
+            background-color: #17a2b8;
+            color: #fff;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        a:hover {
+            background-color: #117a8b;
+        }
+
+        .small-text {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 1rem;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            color: #007bff;
+        }
+
+        .result-card {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            display: none;
+        }
+
+        .result-card.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .result-card.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Mobile-friendly */
+        @media (max-width: 500px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            input[type="email"], button {
+                font-size: 0.9rem;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email Confirmation Failed</h1>
+        <p>Unfortunately, we couldn't confirm your email address. This might be due to an invalid or expired confirmation link.</p>
+
+        <form id="resendForm" method="POST" action="{% url 'rest_resend_email_verification' %}">
+            {% csrf_token %}
+            <label for="email">Enter your email:</label>
+            <input type="email" id="email" name="email" required placeholder="you@example.com">
+            <button type="submit" class="btn-resend">Resend Verification Email</button>
+        </form>
+
+        <p class="small-text">If you believe this is a mistake, please request a new confirmation email or contact our support team.</p>
+
+        <div class="loading" id="loadingText">Resending email...</div>
+        
+        <!-- Result card to show success/error messages -->
+        <div class="result-card" id="resultCard"></div>
+    </div>
+
+    <script>
+        document.getElementById('resendForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var email = document.getElementById('email').value;
+            var csrf_token = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // Show loading text
+            document.getElementById('loadingText').style.display = 'block';
+            document.getElementById('resultCard').style.display = 'none'; // Hide previous result
+
+            fetch("{% url 'rest_resend_email_verification' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf_token,
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingText').style.display = 'none'; // Hide loading text
+                
+                // Display the result card
+                var resultCard = document.getElementById('resultCard');
+                console.log(data);
+                
+                if (data.detail === 'A new confirmation email has been sent.') {
+                    resultCard.className = 'result-card success'; // Success card
+                    resultCard.innerHTML = 'A new confirmation email has been sent to ' + email + '!';
+                } else {
+                    resultCard.className = 'result-card error'; // Error card
+                    resultCard.innerHTML = 'Email not found or already verified. Please check your input.';
+                }
+                resultCard.style.display = 'block'; // Show the result card
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('loadingText').style.display = 'none'; // Hide loading text
+
+                var resultCard = document.getElementById('resultCard');
+                resultCard.className = 'result-card error'; // Error card
+                resultCard.innerHTML = 'There was an error processing your request. Please try again.';
+                resultCard.style.display = 'block'; // Show the result card
+            });
+        });
+    </script>
+</body>
+</html>
