@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('userManager.urls')),
     path('', include('accounts.urls')),
+    path('', include('transactions.urls')),
 
     # dj_allauth endpoints    
     path('', include('dj_rest_auth.urls')),

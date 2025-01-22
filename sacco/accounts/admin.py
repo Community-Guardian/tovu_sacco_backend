@@ -7,8 +7,8 @@ class AccountAdmin(admin.ModelAdmin):
     """
     Admin configuration for the Account model.
     """
-    list_display = ('user', 'account_number', 'account_balance', 'account_status', 'last_modified')
-    list_filter = ('account_status', 'last_modified')
+    list_display = ('user', 'account_number', 'account_balance', 'is_active', 'last_modified')
+    list_filter = ('is_active', 'last_modified')
     search_fields = ('user__username', 'account_number', 'account_id', 'red_code')
     readonly_fields = ('id', 'account_number', 'account_id', 'pin_number', 'red_code', 'last_modified')
     ordering = ('-last_modified',)

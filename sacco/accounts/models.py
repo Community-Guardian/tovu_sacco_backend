@@ -86,7 +86,6 @@ class Account(models.Model):
     account_id = ShortUUIDField(length=7, unique=True,max_length= 25, prefix="DEX", alphabet="1234567890" )
     pin_number = ShortUUIDField(length=4, unique=True,max_length= 7 , alphabet="1234567890" )
     red_code = ShortUUIDField(length=10, unique=True,max_length= 20, prefix="217", alphabet="abcdefghi1234567890" )
-    account_status = models.CharField(max_length=100, choices= ACCOUNT_STATUS, default="in-active")
     created = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     last_modified = models.DateTimeField(auto_now=True, blank=True, null=True)
@@ -94,6 +93,8 @@ class Account(models.Model):
 
     class Meta:
         ordering = ['-last_modified']
+        verbose_name = "Customer_Account"
+        verbose_name_plural = "Customer_Accounts"
 
     def save(self, *args, **kwargs):
         # Ensure the KYC is linked to the account by default
