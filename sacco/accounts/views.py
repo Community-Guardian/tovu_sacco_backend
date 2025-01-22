@@ -35,11 +35,15 @@ class AccountViewSet(viewsets.ModelViewSet):
             raise NotFound(detail="Account not found. Please check the account ID.")
         except Exception as e:
             logger.error(f"Error retrieving account: {str(e)}")
-            return Response({"detail": "An unexpected error occurred. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
         try:
             partial = kwargs.pop('partial', False)
+            try:
+                account = Account.objects.get(id=kwargs['pk'])
+            except Account.DoesNotExist:
+                raise NotFound(detail="Account not found. Please check the account ID.")
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
@@ -57,11 +61,13 @@ class AccountViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Unexpected error updating account with id {kwargs['pk']}: {str(e)}")
-            return Response({"detail": "An unexpected error occurred. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": {str(e)} }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if not request.user.is_superuser:
+                raise PermissionDenied(detail="You do not have permission to delete this account.")
             self.perform_destroy(instance)
             logger.info(f"Account with ID {kwargs['pk']} deleted successfully.")
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -73,7 +79,7 @@ class AccountViewSet(viewsets.ModelViewSet):
             raise PermissionDenied(detail="You do not have permission to delete this account.")
         except Exception as e:
             logger.error(f"Unexpected error deleting account with id {kwargs['pk']}: {str(e)}")
-            return Response({"detail": "An unexpected error occurred. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class KYCViewSet(viewsets.ModelViewSet):
@@ -118,7 +124,7 @@ class KYCViewSet(viewsets.ModelViewSet):
             raise NotFound(detail="KYC record not found. Please check the ID.")
         except Exception as e:
             logger.error(f"Error retrieving KYC: {str(e)}")
-            return Response({"detail": "An unexpected error occurred. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
         try:
@@ -146,7 +152,7 @@ class KYCViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Unexpected error updating KYC for user {request.user.id}: {str(e)}")
-            return Response({"detail": "An unexpected error occurred. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, *args, **kwargs):
         try:
@@ -163,4 +169,4 @@ class KYCViewSet(viewsets.ModelViewSet):
             raise PermissionDenied(detail="You do not have permission to delete this KYC.")
         except Exception as e:
             logger.error(f"Unexpected error deleting KYC for user {request.user.id}: {str(e)}")
-            return Response({"detail": "An unexpected error occurred. Please try again later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
