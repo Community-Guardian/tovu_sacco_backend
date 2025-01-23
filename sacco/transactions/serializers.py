@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import TransferTransaction, WithdrawTransaction, RefundTransaction, PaymentRequestTransaction, DepositTransaction
+from .models import TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction
 
 class TransferTransactionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,10 +16,6 @@ class RefundTransactionSerializer(serializers.ModelSerializer):
         model = RefundTransaction
         fields = '__all__'
 
-class PaymentRequestTransactionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PaymentRequestTransaction
-        fields = '__all__'
 
 class DepositTransactionSerializer(serializers.ModelSerializer):
     class Meta:

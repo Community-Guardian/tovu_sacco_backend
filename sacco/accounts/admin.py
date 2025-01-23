@@ -11,6 +11,11 @@ class AccountAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'last_modified')
     search_fields = ('user__username', 'account_number', 'account_id', 'red_code')
     readonly_fields = ('id', 'account_number', 'account_id', 'pin_number', 'red_code', 'last_modified')
+    fieldsets = (
+        ('Kyc Linked', {
+            'fields': ('kyc',),
+        }),
+    )
     ordering = ('-last_modified',)
 
 
@@ -39,8 +44,5 @@ class KYCAdmin(admin.ModelAdmin):
         }),
         ('Next of Kin', {
             'fields': ('next_of_kin_name', 'next_of_kin_relationship', 'next_of_kin_contact'),
-        }),
-        ('Accounts Linked', {
-            'fields': ('account',),
         }),
     )
