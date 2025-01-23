@@ -27,6 +27,7 @@ urlpatterns = [
     path('', include('accounts.urls')),
     path('', include('transactions.urls')),
     path('', include('loans.urls')),
+    path('', include('investments.urls')),  # Include the investments app URLs
 
     # dj_allauth endpoints    
     path('', include('dj_rest_auth.urls')),

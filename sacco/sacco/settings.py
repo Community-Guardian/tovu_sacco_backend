@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'jazzmin',
     'corsheaders',
     'django_daraja',
+    'django_extensions',
+
     
     # django rest auth config apps
     'rest_framework_simplejwt',
@@ -67,6 +69,7 @@ INSTALLED_APPS = [
     'accounts',
     'transactions',
     'loans',
+    'investments',
 ]
 
 MIDDLEWARE = [

@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class SaccomanagerConfig(AppConfig):
+class InvestmentsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'saccoManager'
+    name = 'investments'
