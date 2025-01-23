@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'userManager',
     'accounts',
     'transactions',
+    'loans',
 ]
 
 MIDDLEWARE = [
