@@ -1,12 +1,42 @@
+# serializers.py
 from rest_framework import serializers
-from .models import Investment
+from .models import InvestmentType, Investment, InvestmentAccount, UserInvestment, Dividend
+
+class InvestmentTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvestmentType
+        fields = ['id', 'name', 'description']
 
 class InvestmentSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the Investment model to convert it into JSON format and validate data.
-    """
+    investment_type = InvestmentTypeSerializer()
 
     class Meta:
         model = Investment
-        fields = ['id', 'name', 'description', 'amount_invested', 'date_invested', 'roi_percentage']
-        read_only_fields = ['id', 'date_invested']  # ID and date_invested should not be editable
+        fields = ['id', 'investment_type', 'amount_invested', 'current_value', 'return_on_investment', 
+                  'date_invested', 'maturity_date', 'description', 'is_active', 'profit_or_loss', 'roi_percentage']
+
+class InvestmentAccountSerializer(serializers.ModelSerializer):
+    total_investments = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_profit_or_loss = serializers.DecimalField(max_digits=15, decimal_places=2)
+    investment_limit = serializers.DecimalField(max_digits=15, decimal_places=2)
+    has_reached_investment_limit = serializers.BooleanField()
+
+    class Meta:
+        model = InvestmentAccount
+        fields = ['id', 'user', 'total_investments', 'total_profit_or_loss', 'last_updated', 'investment_limit', 'has_reached_investment_limit']
+
+class UserInvestmentSerializer(serializers.ModelSerializer):
+    account = InvestmentAccountSerializer()
+    investment = InvestmentSerializer()
+
+    class Meta:
+        model = UserInvestment
+        fields = ['id', 'account', 'investment', 'invested_amount', 'date_added', 'current_profit_or_loss']
+
+class DividendSerializer(serializers.ModelSerializer):
+    investment_account = InvestmentAccountSerializer()
+    investment_type = InvestmentTypeSerializer()
+
+    class Meta:
+        model = Dividend
+        fields = ['id', 'investment_account', 'investment_type', 'amount', 'date_distributed', 'is_distributed', 'calculate_dividend']

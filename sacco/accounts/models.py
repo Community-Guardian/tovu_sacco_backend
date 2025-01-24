@@ -46,9 +46,9 @@ class KYC(models.Model):
     gender = models.CharField(choices=GENDER, max_length=40)
     identity_type = models.CharField(choices=IDENTITY_TYPE, max_length=140)
     id_number = models.CharField(max_length=10)
-    identity_image = models.FileField(upload_to=user_directory_path)
+    identity_image = models.FileField(upload_to=user_directory_path, blank=True, null=True)
     date_of_birth = models.DateTimeField(auto_now_add=False)
-    signature = models.FileField(upload_to=user_directory_path)
+    signature = models.FileField(upload_to=user_directory_path, blank=True, null=True)
     kra_pin = models.CharField(max_length=15)
 
 

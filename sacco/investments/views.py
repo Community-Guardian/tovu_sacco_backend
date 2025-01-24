@@ -1,43 +1,36 @@
+# views.py
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from .models import Investment
-from .serializers import InvestmentSerializer
-import logging
+from rest_framework.response import Response
+from .models import InvestmentType, Investment, InvestmentAccount, UserInvestment, Dividend
+from .serializers import InvestmentTypeSerializer, InvestmentSerializer, InvestmentAccountSerializer, UserInvestmentSerializer, DividendSerializer
 
-# Set up logging
-logger = logging.getLogger(__name__)
+class InvestmentTypeViewSet(viewsets.ModelViewSet):
+    queryset = InvestmentType.objects.all()
+    serializer_class = InvestmentTypeSerializer
 
 class InvestmentViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing investments for a single Sacco. It includes list, create, retrieve, update, and delete operations.
-    """
-    serializer_class = InvestmentSerializer
-    permission_classes = [IsAuthenticated]  # Ensures that only authenticated users can access
     queryset = Investment.objects.all()
+    serializer_class = InvestmentSerializer
 
-    def get_queryset(self):
-        """
-        Get the investments for the specific Sacco.
-        """
-        return Investment.objects.all()
+class InvestmentAccountViewSet(viewsets.ModelViewSet):
+    queryset = InvestmentAccount.objects.all()
+    serializer_class = InvestmentAccountSerializer
 
-    def perform_create(self, serializer):
-        """
-        Override perform_create to add custom logic or logging when an investment is created.
-        """
-        logger.info(f"Creating a new investment: {serializer.validated_data['name']} for Sacco ")
-        serializer.save()
+class UserInvestmentViewSet(viewsets.ModelViewSet):
+    queryset = UserInvestment.objects.all()
+    serializer_class = UserInvestmentSerializer
 
-    def perform_update(self, serializer):
-        """
-        Override perform_update to add custom logic or logging when an investment is updated.
-        """
-        logger.info(f"Updating investment #{self.kwargs['pk']}: {serializer.validated_data['name']} for Sacco")
-        serializer.save()
+class DividendViewSet(viewsets.ModelViewSet):
+    queryset = Dividend.objects.all()
+    serializer_class = DividendSerializer
 
-    def perform_destroy(self, instance):
+    def create(self, request, *args, **kwargs):
         """
-        Override perform_destroy to add custom logic or logging when an investment is deleted.
+        Custom create view for dividend to handle calculation
         """
-        logger.info(f"Deleting investment #{instance.id}: {instance.name} for Sacco ")
-        instance.delete()
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            dividend = serializer.save()
+            dividend.calculate_dividend  # Calculate the dividend before saving
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
