@@ -99,11 +99,21 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class PermissionSerializer(serializers.ModelSerializer):
     """
-    Serializer for Permission model.
+    Serializer for Permission model to return custom fields:
+    app, feature (name), permission (codename), and id.
     """
+    app = serializers.SerializerMethodField()
+    feature = serializers.CharField(source='name')
+    permission = serializers.CharField(source='codename')
+
     class Meta:
         model = Permission
-        fields = ['id', 'name', 'codename']
+        fields = ['id', 'app', 'feature', 'permission']
+
+    def get_app(self, obj):
+        return obj.content_type.app_label
+    
+    
 class UserTypePermissionSerializer(serializers.ModelSerializer):
     groups = GroupSerializer(many=True)
     

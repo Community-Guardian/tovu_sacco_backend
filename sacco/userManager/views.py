@@ -12,18 +12,14 @@ from django.contrib.auth.models import Group, Permission
 from .models import CustomUser
 from .serializers import CustomUserSerializer, GroupSerializer,ResendEmailVerificationSerializer, PermissionSerializer,CustomTokenRefreshSerializer
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
 from dj_rest_auth.views import PasswordResetView
 from django.conf import settings
 from rest_framework_simplejwt.views import TokenRefreshView
 from allauth.account.models import EmailAddress  # Import EmailAddress from allauth
 from django.utils.translation import gettext_lazy as _
-from django.utils.encoding import force_str
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-import base64
-from django.utils.encoding import DjangoUnicodeDecodeError
-from dj_rest_auth.views import PasswordResetConfirmView
+from rest_framework.permissions import DjangoModelPermissions
 
 class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
@@ -144,57 +140,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             raise PermissionDenied(detail="You do not have permission to access this user's data.")
 
         return obj
-
-    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
-    def get_all(self, request):
-        """
-        Admin-only action to retrieve all users.
-        """
-        users = CustomUser.objects.all()
-        serializer = self.get_serializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def perform_update(self, serializer):
-        """
-        Prevent users from modifying certain fields.
-        """
-        user = self.request.user
-        if not user.is_staff:
-            # Only allow admins to modify 'is_staff', 'role', 'groups', 'user_permissions'
-            serializer.save(is_staff=user.is_staff, is_active=user.is_active)
-        else:
-            # Admin can modify everything
-            serializer.save()
-
-    @action(detail=True, methods=['patch'], permission_classes=[IsAdminUser])
-    def activate_user(self, request, pk=None):
-        """
-        Admin-only action to activate a user account.
-        """
-        user = self.get_object()
-        user.is_active = True
-        user.save()
-        return Response({'status': 'User activated'}, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['patch'], permission_classes=[IsAdminUser])
-    def deactivate_user(self, request, pk=None):
-        """
-        Admin-only action to deactivate a user account.
-        """
-        user = self.get_object()
-        user.is_active = False
-        user.save()
-        return Response({'status': 'User deactivated'}, status=status.HTTP_200_OK)
-
-    def destroy(self, request, *args, **kwargs):
-        """
-        Allow admins to delete users.
-        """
-        user = self.get_object()
-        if not request.user.is_staff:
-            raise PermissionDenied(detail="You do not have permission to delete users.")
-        user.delete()
-        return Response({'status': 'User deleted'}, status=status.HTTP_204_NO_CONTENT)
 class GroupViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing groups and permissions.

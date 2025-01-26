@@ -67,9 +67,9 @@ INSTALLED_APPS = [
     # Custom Apps
     'userManager',
     'accounts',
-    'transactions',
+    # 'transactions',
     'loans',
-    'investments',
+    # 'investments',
 ]
 
 MIDDLEWARE = [
@@ -167,7 +167,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # configurations
 # base user Configurations
 AUTH_USER_MODEL = 'userManager.CustomUser'
-AUTH_PERMISSIONS_MODELS = 'User.CustomUser.user_permissions'
+
+
 # Django sites framework
 SITE_ID = 1
 SITENAME = "sacco"
@@ -211,7 +212,7 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = False
 
 # Email verification options: 'mandatory', 'optional', or 'none'
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 
 # Maximum number of email addresses a user can have
 ACCOUNT_MAX_EMAIL_ADDRESSES = 2
@@ -224,11 +225,14 @@ ACCOUNT_PASSWORD_MIN_LENGTH = 8
 # Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_HOST = 'mail.swift-traders.co.ke'
 EMAIL_PORT = 465  # For SSL connection
 EMAIL_USE_SSL = True  # Use SSL connection (recommended for cPanel)
 EMAIL_USE_TLS = False  # Make sure TLS is disabled if using SSL
 EMAIL_HOST_USER = 'benjaminkaranja8393@gmail.com'
 EMAIL_HOST_PASSWORD = 'vajl vqgr yieo llmo'
+# EMAIL_HOST_USER = 'admin@swift-traders.co.ke'
+# EMAIL_HOST_PASSWORD = '0H{G9Ibj#4Vj'
 DEFAULT_FROM_EMAIL = 'Tovu Sacco <no-reply@tovusacco.com>'
 ACCOUNT_EMAIL_SUBJECT_PREFIX = 'Tovu Sacco '
 
@@ -250,7 +254,7 @@ REST_FRAMEWORK = {
 
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ],
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     # 'PAGE_SIZE': 10,

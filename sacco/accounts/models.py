@@ -32,62 +32,69 @@ IDENTITY_TYPE = (
     ("international_passport", "International Passport")
 )
 
-
+EMPLOYMENT_STATUS = (
+    ("unemployed", "Unemployed"),
+    ("self_employed", "Self Employed"),
+    ("employed", "Employed"),
+    ("student", "Student"),
+    ("retired", "Retired"),
+    ("other", "Other")
+)
 def user_directory_path(instance, filename):
     ext = filename.split(".")[-1]
-    filename = "%s_%s" % (instance.id, ext)
+    filename = "%s_%s" % (instance.user.id, ext)
     return "user_{0}/{1}".format(instance.user.id, filename)
 
 class KYC(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
+    membership_number = ShortUUIDField(length=10, unique=True,primary_key=True,max_length= 20, prefix="217", alphabet="abcdefghi1234567890", editable=False )
     user =  models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=1000)
     marital_status = models.CharField(choices=MARITAL_STATUS, max_length=40)
     gender = models.CharField(choices=GENDER, max_length=40)
     identity_type = models.CharField(choices=IDENTITY_TYPE, max_length=140)
-    id_number = models.CharField(max_length=10)
-    identity_image = models.FileField(upload_to=user_directory_path, blank=True, null=True)
+    id_number = models.CharField(max_length=10,unique=True)
+    identity_image = models.ImageField(upload_to=user_directory_path,default='res/default.png')
     date_of_birth = models.DateTimeField(auto_now_add=False)
-    signature = models.FileField(upload_to=user_directory_path, blank=True, null=True)
-    kra_pin = models.CharField(max_length=15)
-
-
+    signature = models.ImageField(upload_to=user_directory_path, blank=True, null=True)
+    kra_pin = models.CharField(max_length=15,unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     # Address
-    country = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
-
+    country = models.CharField(max_length=100,blank=True, null=True)
+    county = models.CharField(max_length=100,blank=True, null=True)
+    town = models.CharField(max_length=100,blank=True, null=True)
     # Contact Detail
     contact_number = PhoneNumberField(unique=True)
-    date = models.DateTimeField(auto_now_add=True)
-
     # kyc status
     kyc_submitted = models.BooleanField(default=False)
     kyc_confirmed = models.BooleanField(default=False)
-
     # next of kin
     next_of_kin_name = models.CharField(max_length=100)
     next_of_kin_relationship = models.CharField(max_length=100)
     next_of_kin_contact = PhoneNumberField()
-
-
+    # Employment status field
+    employment_status = models.CharField(choices=EMPLOYMENT_STATUS, max_length=40, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user}"  
+    def save(self, *args, **kwargs):
+        # Ensure the KYC is marked as Submitted on create
+        if not self.kyc_submitted:
+            self.kyc_submitted = True
+        
+        super().save(*args, **kwargs)
     class Meta:
-        ordering = ['-date']  
+        ordering = ['-created_at']  
 
 class Account(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    kyc = models.ForeignKey(KYC, on_delete=models.DO_NOTHING, blank=True, null=True)
+    kyc = models.OneToOneField(KYC, on_delete=models.DO_NOTHING, blank=True, null=True)
     account_balance = models.PositiveIntegerField(default=0)
-    account_number = ShortUUIDField(length=10, unique=True,max_length= 25, prefix="217", alphabet="1234567890" )
+    account_number = ShortUUIDField(length=10,primary_key=True, editable=False,  unique=True,max_length= 25, prefix="217", alphabet="1234567890" )
     account_id = ShortUUIDField(length=7, unique=True,max_length= 25, prefix="DEX", alphabet="1234567890" )
-    pin_number = ShortUUIDField(length=4, unique=True,max_length= 7 , alphabet="1234567890" )
-    red_code = ShortUUIDField(length=10, unique=True,max_length= 20, prefix="217", alphabet="abcdefghi1234567890" )
     created = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    is_suspended = models.BooleanField(default=True)
     last_modified = models.DateTimeField(auto_now=True, blank=True, null=True)
     recommended_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, blank=True, null=True, related_name="recommended_by")
 

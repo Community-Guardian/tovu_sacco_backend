@@ -13,7 +13,12 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+import logging
+from rest_framework.exceptions import ValidationError
+from django.db import models
 
+logger = logging.getLogger(__name__)
 
 class LoanTypeViewSet(viewsets.ModelViewSet):
     """
@@ -41,7 +46,7 @@ class LoanViewSet(viewsets.ModelViewSet):
     serializer_class = LoanSerializer
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):    
+    def perform_create(self, serializer):  
         serializer.save(account=self.request.user.account)
 
     @action(detail=True, methods=["post"])
@@ -69,7 +74,6 @@ class LoanViewSet(viewsets.ModelViewSet):
         total_interest = loan.calculate_interest()
         return Response({"loan_id": loan.id, "total_interest": total_interest}, status=HTTP_200_OK)
 
-
 class LoanPaymentViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing loan payments.
@@ -79,30 +83,62 @@ class LoanPaymentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
+        # Get the loan instance related to the payment
+        loan = serializer.validated_data['loan']
+
+        # Check if the loan is approved and has a valid amount_approved
+        if loan.amount_approved is None:
+            raise ValidationError("Loan has not been approved or does not have a valid loan amount.")
+
+        # Calculate the total payments made so far for this loan
+        total_payments = loan.payments.aggregate(total_paid=models.Sum('amount'))['total_paid'] or 0
+
+        # Check if the new payment would exceed the loan balance
+        remaining_balance = loan.amount_approved - total_payments
+
+        if serializer.validated_data['amount'] > remaining_balance:
+            raise ValidationError(f"The payment amount exceeds the remaining loan balance of {remaining_balance:.2f}")
+
+        # If the payment is valid, save it
         serializer.save()
 
-
-class UserLoanRequirementView(APIView):
+    def create(self, request, *args, **kwargs):
+        # Override the create method to handle the response after saving the payment
+        try:
+            return super().create(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+class UserLoanRequirementViewSet(viewsets.ModelViewSet):
     """
     API endpoint to view and update user loan requirements.
     """
+    queryset = UserLoanRequirement.objects.all()
+    serializer_class = UserLoanRequirementSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        """
-        Retrieve loan requirements for the authenticated user.
-        """
-        user_requirements = UserLoanRequirement.objects.filter(account__user=request.user)
-        serializer = UserLoanRequirementSerializer(user_requirements, many=True)
-        return Response(serializer.data)
+    # Restricting allowed HTTP methods to GET and PATCH only
+    http_method_names = ['get', 'patch']  # Only allow GET and PATCH methods
 
-    def patch(self, request, pk):
+    def get_queryset(self):
         """
-        Partially update a specific loan requirement for the user.
+        Ensure that users can only see their own loan requirements.
         """
-        requirement = get_object_or_404(UserLoanRequirement, id=pk, account__user=request.user)
-        serializer = UserLoanRequirementSerializer(requirement, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=HTTP_200_OK)
-        return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
+        return UserLoanRequirement.objects.filter(account__user=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve a specific loan requirement for the authenticated user.
+        """
+        return super().retrieve(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Partially update a specific loan requirement for the authenticated user.
+        """
+        instance = self.get_object()
+        if instance.account.user != request.user:
+            return Response({"error": "You are not authorized to update this requirement."}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)

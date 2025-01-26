@@ -118,13 +118,17 @@ class Loan(models.Model):
     def save(self, *args, **kwargs):
         """
         Automatically populate interest rate and date approved when the loan is approved.
+        Also, ensure the requested amount does not exceed the maximum allowed for the loan type.
         """
+        # Ensure loan amount does not exceed the max allowed for the loan type
+        if self.amount_requested > self.loan_type.max_amount:
+            raise ValidationError(f"The loan amount cannot exceed the maximum allowed for this loan type: {self.loan_type.max_amount}")
+
         # Set the interest rate based on the loan type if not already set
         if self.interest_rate is None and self.loan_type:
             self.interest_rate = self.loan_type.interest_rate
-
+        
         if self.status == "approved":
-
             # Set the date approved if not already set
             if self.date_approved is None:
                 self.date_approved = timezone.now()

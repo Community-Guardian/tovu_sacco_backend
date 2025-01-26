@@ -1,11 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AccountViewSet, KYCViewSet
+from .views import KYCViewSet, AccountViewSet
 
 router = DefaultRouter()
-router.register(r'accounts', AccountViewSet, basename='account')
 router.register(r'kyc', KYCViewSet, basename='kyc')
+router.register(r'accounts', AccountViewSet, basename='accounts')
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('api/', include(router.urls)),
 ]
