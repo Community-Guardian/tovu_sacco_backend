@@ -67,7 +67,7 @@ INSTALLED_APPS = [
     # Custom Apps
     'userManager',
     'accounts',
-    # 'transactions',
+    'transactions',
     'loans',
     'investments',
 ]
@@ -117,6 +117,16 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'saccodb',
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': 3305,
+#     }
+# }
 
 
 # Password validation
@@ -212,7 +222,7 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = False
 
 # Email verification options: 'mandatory', 'optional', or 'none'
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
 # Maximum number of email addresses a user can have
 ACCOUNT_MAX_EMAIL_ADDRESSES = 2

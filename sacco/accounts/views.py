@@ -13,10 +13,15 @@ class KYCViewSet(viewsets.ModelViewSet):
         return KYC.objects.filter(user=user)
 
     def create(self, request, *args, **kwargs):
-        if 'user' not in request.data:
-            request.data['user'] = request.user.id
-        return super().create(request, *args, **kwargs)
+        # Create a mutable copy of request.data
+        data = request.data.copy()
 
+        data['user'] = request.user.id
+        
+        # Proceed with creating the object using the modified data
+        request._full_data = data  # Override the original request data with the mutable data
+
+        return super().create(request, *args, **kwargs)
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
