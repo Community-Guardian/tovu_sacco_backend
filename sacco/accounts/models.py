@@ -6,6 +6,7 @@ from django.dispatch import receiver
 # Create your models here.
 from phonenumber_field.modelfields import PhoneNumberField
 from django.conf import settings
+import os
 
 ACCOUNT_STATUS = (
     ("active", "Active"),
@@ -42,8 +43,8 @@ EMPLOYMENT_STATUS = (
 )
 def user_directory_path(instance, filename):
     ext = filename.split(".")[-1]
-    filename = "%s_%s" % (instance.user.id, ext)
-    return "user_{0}/{1}".format(instance.user.id, filename)
+    filename = f"{instance.user.id}_{uuid.uuid4()}.{ext}"
+    return os.path.join('users/', filename)
 
 class KYC(models.Model):
     membership_number = ShortUUIDField(
