@@ -46,46 +46,58 @@ def user_directory_path(instance, filename):
     return "user_{0}/{1}".format(instance.user.id, filename)
 
 class KYC(models.Model):
-    membership_number = ShortUUIDField(length=10, unique=True,primary_key=True,max_length= 20, prefix="217", alphabet="abcdefghi1234567890", editable=False )
-    user =  models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    membership_number = ShortUUIDField(
+        length=10, unique=True, primary_key=True, max_length=20, 
+        prefix="217", alphabet="abcdefghi1234567890", editable=False
+    )
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=1000)
     marital_status = models.CharField(choices=MARITAL_STATUS, max_length=40)
     gender = models.CharField(choices=GENDER, max_length=40)
     identity_type = models.CharField(choices=IDENTITY_TYPE, max_length=140)
-    id_number = models.CharField(max_length=10,unique=True)
-    identity_image = models.ImageField(upload_to=user_directory_path,default='res/default.png')
+    id_number = models.CharField(max_length=10, unique=True)
+    identity_image = models.ImageField(upload_to=user_directory_path, default='res/default.png')
     date_of_birth = models.DateTimeField(auto_now_add=False)
     signature = models.ImageField(upload_to=user_directory_path, blank=True, null=True)
-    kra_pin = models.CharField(max_length=15,unique=True)
+    kra_pin = models.CharField(max_length=15, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
     # Address
-    country = models.CharField(max_length=100,blank=True, null=True)
-    county = models.CharField(max_length=100,blank=True, null=True)
-    town = models.CharField(max_length=100,blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    county = models.CharField(max_length=100, blank=True, null=True)
+    town = models.CharField(max_length=100, blank=True, null=True)
+    
     # Contact Detail
     contact_number = PhoneNumberField(unique=True)
-    # kyc status
+    
+    # KYC status
     kyc_submitted = models.BooleanField(default=False)
     kyc_confirmed = models.BooleanField(default=False)
-    # next of kin
-    next_of_kin_name = models.CharField(max_length=100)
-    next_of_kin_relationship = models.CharField(max_length=100)
-    next_of_kin_contact = PhoneNumberField()
-    # Employment status field
+    
+    # Employment status
     employment_status = models.CharField(choices=EMPLOYMENT_STATUS, max_length=40, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user}"  
+
     def save(self, *args, **kwargs):
-        # Ensure the KYC is marked as Submitted on create
         if not self.kyc_submitted:
             self.kyc_submitted = True
-        
         super().save(*args, **kwargs)
+    
     class Meta:
-        ordering = ['-created_at']  
+        ordering = ['-created_at']
 
+
+class NextOfKin(models.Model):
+    kyc = models.ForeignKey(KYC, on_delete=models.CASCADE, related_name="next_of_kin")
+    name = models.CharField(max_length=100)
+    relationship = models.CharField(max_length=100)
+    contact_number = PhoneNumberField()
+
+    def __str__(self):
+        return f"{self.name} ({self.relationship}) - {self.kyc.user}"
 class Account(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     kyc = models.OneToOneField(KYC, on_delete=models.DO_NOTHING, blank=True, null=True)

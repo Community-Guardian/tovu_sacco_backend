@@ -1,19 +1,23 @@
 from rest_framework import serializers
-from .models import KYC, Account
-from phonenumber_field.serializerfields import PhoneNumberField
+from .models import KYC, Account,NextOfKin
+
+class NextOfKinSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NextOfKin
+        fields = ['id', 'name', 'relationship', 'contact_number']
+
 
 class KYCSerializer(serializers.ModelSerializer):
-    contact_number = PhoneNumberField()
-    next_of_kin_contact = PhoneNumberField()
+    next_of_kin = NextOfKinSerializer(many=True, read_only=True)  # Nested serializer
 
     class Meta:
         model = KYC
         fields = [
             'membership_number', 'user', 'full_name', 'marital_status', 'gender',
             'identity_type', 'id_number', 'identity_image', 'date_of_birth', 'signature',
-            'kra_pin','employment_status', 'created_at', 'updated_at', 'country', 'county', 'town',
-            'contact_number', 'kyc_submitted', 'kyc_confirmed',
-            'next_of_kin_name', 'next_of_kin_relationship', 'next_of_kin_contact'
+            'kra_pin', 'employment_status', 'created_at', 'updated_at', 'country', 
+            'county', 'town', 'contact_number', 'kyc_submitted', 'kyc_confirmed',
+            'next_of_kin'
         ]
 
 class AccountSerializer(serializers.ModelSerializer):

@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from .models import KYC, Account
-from .serializers import KYCSerializer, AccountSerializer
+from .models import KYC, Account,NextOfKin
+from .serializers import KYCSerializer, AccountSerializer,NextOfKinSerializer
 from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 
 class KYCViewSet(viewsets.ModelViewSet):
@@ -35,3 +35,20 @@ class AccountViewSet(viewsets.ModelViewSet):
         if not KYC.objects.filter(user=request.user).exists():
             return Response({"detail": "KYC information is required."}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
+class NextOfKinViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for managing NextOfKin records.
+    """
+    queryset = NextOfKin.objects.all()
+    serializer_class = NextOfKinSerializer
+
+    def get_queryset(self):
+        # Restrict to NextOfKin records related to the current user's KYC
+        user = self.request.user
+        return NextOfKin.objects.filter(kyc__user=user)
+
+    def perform_create(self, serializer):
+        # Automatically associate the current user's KYC record
+        kyc = KYC.objects.get(user=self.request.user)
+        serializer.save(kyc=kyc)
+
