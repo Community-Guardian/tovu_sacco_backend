@@ -20,7 +20,6 @@ class BaseTransactionSerializer(serializers.ModelSerializer):
 
 
 class TransferTransactionSerializer(serializers.ModelSerializer):
-    receiver = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     sender_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     receiver_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")

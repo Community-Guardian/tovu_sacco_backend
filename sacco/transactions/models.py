@@ -110,7 +110,6 @@ class TransferTransaction(BaseTransaction):
     """
     Handles transfer transactions between users, including relevant payment method data.
     """
-    receiver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="received_transactions")
     sender_account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, related_name="sender_account")
     receiver_account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, related_name="receiver_account")
     mpesa_transaction = models.OneToOneField(MpesaTransaction, on_delete=models.SET_NULL, null=True, blank=True, related_name="transfer_mpesa_transaction")

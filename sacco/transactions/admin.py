@@ -24,8 +24,8 @@ class AuditTransactionAdmin(admin.ModelAdmin):
 
 # Admin for TransferTransaction
 class TransferTransactionAdmin(admin.ModelAdmin):
-    list_display = ('transaction_id', 'user', 'receiver', 'amount', 'status', 'transaction_type', 'payment_method', 'date', 'sender_account', 'receiver_account')
-    search_fields = ('transaction_id', 'user__username', 'receiver__username', 'payment_method', 'status')
+    list_display = ('transaction_id', 'user',  'amount', 'status', 'transaction_type', 'payment_method', 'date', 'sender_account', 'receiver_account')
+    search_fields = ('transaction_id', 'user__username', 'receiver_account__user__username', 'payment_method', 'status')
     list_filter = ('status', 'payment_method', 'transaction_type')
     ordering = ('-date',)
 
