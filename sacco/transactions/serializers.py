@@ -10,7 +10,7 @@ class BaseTransactionSerializer(serializers.ModelSerializer):
     Serializer for BaseTransaction model. 
     This includes the common fields for all transaction types.
     """
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="pending")
+    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="transfer")
     payment_method = serializers.ChoiceField(choices=BaseTransaction.PAYMENT_METHODS, default="in-house")
 
@@ -23,7 +23,7 @@ class TransferTransactionSerializer(serializers.ModelSerializer):
     receiver = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     sender_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     receiver_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="pending")
+    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="transfer")
 
     class Meta:
@@ -42,23 +42,17 @@ class TransferTransactionSerializer(serializers.ModelSerializer):
 
 class WithdrawTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="pending")
+    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="withdraw")
 
     class Meta:
         model = WithdrawTransaction
         fields = '__all__'  # Include all fields from WithdrawTransaction
 
-    def create(self, validated_data):
-        user = self.context['request'].user  # Access the user from request context
-        validated_data['user'] = user  # Add the user to the validated data
-        
-        return super().create(validated_data)  # Proceed with the original create method
-
 
 class RefundTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="pending")
+    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="refund")
 
     class Meta:
@@ -74,7 +68,7 @@ class RefundTransactionSerializer(serializers.ModelSerializer):
 
 class DepositTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS , default="pending")
+    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS , default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE ,default="deposit")
 
     class Meta:

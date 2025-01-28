@@ -46,9 +46,9 @@ def update_dividend_distribution(sender, instance, created, **kwargs):
                 user = instance.account.account.user
                 print(f"Dividend updated for {user.username}")
             else:
-                print(f"Dividend not updated for {instance.account.account.user.username} due to missing data.")
+                print(f"Dividend not updated for {instance.account.user.username} due to missing data.")
         else:
-            print(f"No dividend found for {instance.account.account.user.username}.")
+            print(f"No dividend found for {instance.account.user.username}.")
 @receiver(post_migrate)
 def create_sample_investment_types(sender, **kwargs):
     """

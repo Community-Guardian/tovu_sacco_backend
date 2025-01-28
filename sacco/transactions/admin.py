@@ -2,6 +2,8 @@ from django.contrib import admin
 from .models import BaseTransaction, TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction, AuditTransaction
 from django.utils.html import format_html
 from django.contrib.contenttypes.models import ContentType
+from django.urls import reverse  # Use reverse from django.urls
+
 
 class AuditTransactionAdmin(admin.ModelAdmin):
     list_display = ('transaction', 'field_name', 'old_value', 'new_value', 'updated_by', 'updated_at')
@@ -14,10 +16,12 @@ class AuditTransactionAdmin(admin.ModelAdmin):
         transaction = obj.transaction
         return format_html(
             '<a href="{}">{}</a>', 
-            admin.reverse('admin:%s_%s_change' % (transaction._meta.app_label, transaction._meta.model_name), 
-                          args=[transaction.pk]), 
+            reverse('admin:%s_%s_change' % (transaction._meta.app_label, transaction._meta.model_name), 
+                    args=[transaction.pk]),  # Use reverse instead of admin.reverse
             transaction.transaction_id
         )
+
+
 # Admin for TransferTransaction
 class TransferTransactionAdmin(admin.ModelAdmin):
     list_display = ('transaction_id', 'user', 'receiver', 'amount', 'status', 'transaction_type', 'payment_method', 'date', 'sender_account', 'receiver_account')

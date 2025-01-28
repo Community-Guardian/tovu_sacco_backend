@@ -8,7 +8,7 @@ class InvestmentTypeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description']
 
 class InvestmentSerializer(serializers.ModelSerializer):
-    investment_type = InvestmentTypeSerializer()
+    investment_type = serializers.PrimaryKeyRelatedField(queryset=InvestmentType.objects.all())
 
     class Meta:
         model = Investment
@@ -26,9 +26,9 @@ class InvestmentAccountSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'total_investments', 'total_profit_or_loss', 'last_updated', 'investment_limit', 'has_reached_investment_limit']
 
 class UserInvestmentSerializer(serializers.ModelSerializer):
-    account = InvestmentAccountSerializer()
-    investment = InvestmentSerializer()
-
+    # Use PrimaryKeyRelatedField to allow creating a UserInvestment using the related model IDs
+    account = serializers.PrimaryKeyRelatedField(queryset=InvestmentAccount.objects.all())
+    investment = serializers.PrimaryKeyRelatedField(queryset=Investment.objects.all())
     class Meta:
         model = UserInvestment
         fields = ['id', 'account', 'investment', 'invested_amount', 'date_added', 'current_profit_or_loss']

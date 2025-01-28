@@ -5,8 +5,9 @@ from accounts.models import Account
 from django.utils import timezone
 from datetime import timedelta
 from django.core.exceptions import ValidationError
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey,GenericRelation
 from django.contrib.contenttypes.models import ContentType
+
 User = get_user_model()
 
 
@@ -49,6 +50,7 @@ class BaseTransaction(models.Model):
     update = models.DateTimeField(auto_now=False, null=True, blank=True)
     is_processed = models.BooleanField(default=False)
     expiry_date = models.DateTimeField(null=True, blank=True)  # Transaction expiry field
+    audit_logs = GenericRelation('AuditTransaction')
 
     class Meta:
         abstract = True
@@ -126,6 +128,15 @@ class WithdrawTransaction(BaseTransaction):
     bank_transaction = models.OneToOneField(BankTransaction, on_delete=models.SET_NULL, null=True, blank=True, related_name="withdraw_bank_transaction")
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="withdraw_transactions")
 
+    class Meta:
+        verbose_name = "Withdrawal Transaction"
+
+    def save(self, *args, **kwargs):
+        # Call clean to validate before saving
+        print(self.account.account_balance)
+        if self.account and not self.is_processed and self.amount > self.account.account_balance:
+            raise ValidationError("Withdrawal amount cannot exceed account balance.")
+        super().save(*args, **kwargs)
 class RefundTransaction(BaseTransaction):
     """
     Handles refund transactions, including relevant payment method data.
@@ -163,12 +174,7 @@ class TransactionManager(models.Manager):
 # Adding custom manager to BaseTransaction for convenience
 BaseTransaction.add_to_class('objects', TransactionManager())
 
-# An audit model to track transaction changes
 class AuditTransaction(models.Model):
-    """
-    Tracks changes made to transactions for auditing purposes.
-    """
-    # Reference to any subclass of BaseTransaction using ContentType
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     transaction = GenericForeignKey('content_type', 'object_id')
