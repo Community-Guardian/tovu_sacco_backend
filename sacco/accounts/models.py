@@ -106,7 +106,7 @@ class Account(models.Model):
     account_id = ShortUUIDField(length=7, unique=True,max_length= 25, prefix="DEX", alphabet="1234567890" )
     created = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-    is_suspended = models.BooleanField(default=True)
+    is_suspended = models.BooleanField(default=False)
     last_modified = models.DateTimeField(auto_now=True, blank=True, null=True)
     recommended_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, blank=True, null=True, related_name="recommended_by")
 

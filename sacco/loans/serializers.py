@@ -1,19 +1,50 @@
 from rest_framework import serializers
 from .models import Loan, LoanType, LoanRequirement, LoanPayment, UserLoanRequirement
 
-
-class LoanTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LoanType
-        fields = "__all__"
-
-
 class LoanRequirementSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanRequirement
         fields = "__all__"
+class LoanTypeSerializer(serializers.ModelSerializer):
+    requirements_id = serializers.ListField(
+        child=serializers.IntegerField(),  # Accepts a list of integers (IDs)
+        write_only=True
+    )
+    requirements = LoanRequirementSerializer(many=True, read_only=True)
 
+    class Meta:
+        model = LoanType
+        fields = "__all__"
 
+    def create(self, validated_data):
+        # Extract the requirements_id from the validated data
+        requirements_ids = validated_data.pop('requirements_id', [])
+
+        # Create the LoanType instance
+        loan_type = super().create(validated_data)
+
+        # Associate the requirements with the LoanType instance
+        if requirements_ids:
+            requirements = LoanRequirement.objects.filter(id__in=requirements_ids)
+            loan_type.requirements.set(requirements)  # Using a many-to-many relationship
+            loan_type.save()
+
+        return loan_type
+
+    def update(self, instance, validated_data):
+        # Extract the requirements_id from the validated data
+        requirements_ids = validated_data.pop('requirements_id', [])
+
+        # Update the LoanType instance
+        instance = super().update(instance, validated_data)
+
+        # Update or associate the requirements with the LoanType instance
+        if requirements_ids:
+            requirements = LoanRequirement.objects.filter(id__in=requirements_ids)
+            instance.requirements.set(requirements)  # Using a many-to-many relationship
+            instance.save()
+
+        return instance
 class LoanSerializer(serializers.ModelSerializer):
     requirements = LoanRequirementSerializer(many=True, read_only=True)
     loan_type = serializers.PrimaryKeyRelatedField(queryset=LoanType.objects.all())  # Accept loan_type ID

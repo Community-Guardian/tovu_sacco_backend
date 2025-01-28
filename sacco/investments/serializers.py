@@ -23,7 +23,7 @@ class InvestmentAccountSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InvestmentAccount
-        fields = ['id', 'user', 'total_investments', 'total_profit_or_loss', 'last_updated', 'investment_limit', 'has_reached_investment_limit']
+        fields = '__all__'
 
 class UserInvestmentSerializer(serializers.ModelSerializer):
     # Use PrimaryKeyRelatedField to allow creating a UserInvestment using the related model IDs
