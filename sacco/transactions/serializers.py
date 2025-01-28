@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import BaseTransaction, TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction
 from accounts.models import Account
 from django.contrib.auth import get_user_model
-
+from userManager.serializers import CustomUserSerializer
 User = get_user_model()
 
 class BaseTransactionSerializer(serializers.ModelSerializer):
@@ -25,7 +25,7 @@ class TransferTransactionSerializer(serializers.ModelSerializer):
     receiver_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="transfer")
-
+    user = CustomUserSerializer(read_only=True)
     class Meta:
         model = TransferTransaction
         fields = '__all__'  # Include all fields from TransferTransaction
@@ -44,6 +44,7 @@ class WithdrawTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="withdraw")
+    user = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = WithdrawTransaction
@@ -54,6 +55,7 @@ class RefundTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="refund")
+    user = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = RefundTransaction
@@ -70,6 +72,7 @@ class DepositTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
     status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS , default="completed")
     transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE ,default="deposit")
+    user = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = DepositTransaction
