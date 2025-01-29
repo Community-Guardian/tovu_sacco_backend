@@ -34,7 +34,16 @@ class Investment(models.Model):
         if self.amount_invested > 0:
             return ((self.current_value - self.amount_invested) / self.amount_invested) * 100
         return 0
+    def calculate_current_value(self):
+        """
+        Updates the current value based on the ROI.
+        Formula: current_value = amount_invested * (1 + ROI/100)
+        """
+        return self.amount_invested * (Decimal('1.00') + (self.return_on_investment / Decimal('100')))
 
+    def save(self, *args, **kwargs):
+        self.current_value = self.calculate_current_value()  # Auto-update before saving
+        super().save(*args, **kwargs)
 # Investment Account Model
 class InvestmentAccount(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, primary_key=True)
@@ -87,19 +96,39 @@ class Dividend(models.Model):
 
     def __str__(self):
         return f"Dividend for {self.investment_account.account.user.username} - {self.investment_type.name}"
-    @property
-    def calculate_dividend(self):
-        # Calculate total investment value for the investment type
+
+    def calculate_user_dividend_share(self, user_investment):
+        """
+        Calculate the dividend for a specific user based on their share in the total investment.
+        """
+        # Total invested amount for the specific investment type
         total_investment_value = sum([
             user_investment.invested_amount for user_investment in UserInvestment.objects.filter(
                 investment__investment_type=self.investment_type
             )
         ])
-        
-        # Check if total_investment_value is 0 to avoid division by zero
+
         if total_investment_value == Decimal('0.00'):
-            return Decimal('0.00')  # Or handle it differently, as needed
-        
-        # Calculate user share if total investment value is not zero
-        user_share = self.investment_account.total_investments / total_investment_value
+            return Decimal('0.00')  # Avoid division by zero
+
+        # User's share of the total investment
+        user_share = user_investment.invested_amount / total_investment_value
+        print("user_share", user_share)
+
         return self.amount * user_share
+
+    @property
+    def calculate_dividend(self):
+        """
+        Calculate the dividend distribution for the investment account based on user's share.
+        """
+        user_investments = UserInvestment.objects.filter(
+            account=self.investment_account
+        )
+        
+        total_dividend = Decimal('0.00')
+        
+        for user_investment in user_investments:
+            total_dividend += self.calculate_user_dividend_share(user_investment)
+
+        return total_dividend
