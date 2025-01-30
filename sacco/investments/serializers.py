@@ -31,7 +31,7 @@ class UserInvestmentSerializer(serializers.ModelSerializer):
     investment = serializers.PrimaryKeyRelatedField(queryset=Investment.objects.all())
     class Meta:
         model = UserInvestment
-        fields = ['id', 'account', 'investment', 'invested_amount', 'date_added', 'current_profit_or_loss']
+        fields = '__all__'
 
 class DividendSerializer(serializers.ModelSerializer):
     investment_account = InvestmentAccountSerializer()
@@ -39,4 +39,4 @@ class DividendSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dividend
-        fields = ['id', 'investment_account', 'investment_type', 'amount', 'date_distributed', 'is_distributed', 'calculate_dividend']
+        fields = '__all__'

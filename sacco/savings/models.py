@@ -18,8 +18,8 @@ class Goal(models.Model):
     target_amount = models.DecimalField(max_digits=12, decimal_places=2)
     current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     deadline = models.DateField()
-    cover_icon = models.ImageField(upload_to='goal_covers/', null=True, blank=True)
-    color = models.CharField(max_length=7, default='#FFFFFF')  # Hex color for frontend personalization
+    cover_icon = models.CharField(max_length=20, default='star')
+    color = models.CharField(max_length=7, default='#40A9FF')  # Hex color for frontend personalization
     saving_frequency = models.CharField(max_length=8, choices=SAVING_FREQUENCY_CHOICES, default='MONTHLY')
     progress_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     is_active = models.BooleanField(default=True)  # To track if goal is active
