@@ -3,35 +3,32 @@ from .models import Goal, Deposit, SavingMilestone, SavingReminder, TransactionH
 from .serializers import GoalSerializer, DepositSerializer, SavingMilestoneSerializer, SavingReminderSerializer, TransactionHistorySerializer, GoalNotificationSerializer, GoalProgressSerializer
 from rest_framework.response import Response
 from rest_framework import status
-
 # View for Goal (ModelViewSet)
 class GoalViewSet(viewsets.ModelViewSet):
     queryset = Goal.objects.all()
     serializer_class = GoalSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Only show goals for the authenticated user
         user = self.request.user
         if user.role == 'customer':
-            return self.queryset.filter(user=user)
+            return self.queryset.filter(account__user=user)
         return self.queryset  # Admin or any other role has access to all goals
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    # def perform_create(self, serializer):
+        # serializer.save(user=self.request.user)
 
 
 # View for Deposit (ModelViewSet)
 class DepositViewSet(viewsets.ModelViewSet):
     queryset = Deposit.objects.all()
     serializer_class = DepositSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Only show deposits for the authenticated user's goals
         user = self.request.user
         if user.role == 'customer':
-            return self.queryset.filter(user=user)
+            return self.queryset.filter(goal__account__user=user)
         return self.queryset  # Admin or any other role has access to all deposits
 
 
@@ -39,13 +36,12 @@ class DepositViewSet(viewsets.ModelViewSet):
 class SavingMilestoneViewSet(viewsets.ModelViewSet):
     queryset = SavingMilestone.objects.all()
     serializer_class = SavingMilestoneSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Only show milestones for the authenticated user's goals
         user = self.request.user
         if user.role == 'customer':
-            return self.queryset.filter(goal__user=user)
+            return self.queryset.filter(goal__account__user=user)
         return self.queryset  # Admin or any other role has access to all milestones
 
 
@@ -53,13 +49,12 @@ class SavingMilestoneViewSet(viewsets.ModelViewSet):
 class SavingReminderViewSet(viewsets.ModelViewSet):
     queryset = SavingReminder.objects.all()
     serializer_class = SavingReminderSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Only show reminders for the authenticated user's goals
         user = self.request.user
         if user.role == 'customer':
-            return self.queryset.filter(goal__user=user)
+            return self.queryset.filter(goal__account__user=user)
         return self.queryset  # Admin or any other role has access to all reminders
 
 
@@ -67,13 +62,12 @@ class SavingReminderViewSet(viewsets.ModelViewSet):
 class TransactionHistoryViewSet(viewsets.ModelViewSet):
     queryset = TransactionHistory.objects.all()
     serializer_class = TransactionHistorySerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Filter transaction history based on the authenticated user's goals
         user = self.request.user
         if user.role == 'customer':
-            return self.queryset.filter(user=user)
+            return self.queryset.filter(account__user=user)
         return self.queryset  # Admin or any other role has access to all transaction histories
 
 
@@ -81,23 +75,22 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
 class GoalNotificationViewSet(viewsets.ModelViewSet):
     queryset = GoalNotification.objects.all()
     serializer_class = GoalNotificationSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Return notifications related to the authenticated user
         user = self.request.user
         if user.role == 'customer':
-            return self.queryset.filter(user=user)
+            return self.queryset.filter(account__user=user)
         return self.queryset  # Admin or any other role has access to all notifications
 
 
 # View to update the goal progress (Custom Update View)
 class GoalProgressUpdateView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    queryset = GoalNotification.objects.all()
 
     def update(self, request, pk=None):
         try:
-            goal = Goal.objects.get(id=pk, user=request.user)
+            goal = Goal.objects.get(id=pk, account__user=request.user)
         except Goal.DoesNotExist:
             return Response({'detail': 'Goal not found or not authorized'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -115,11 +108,12 @@ class GoalProgressUpdateView(viewsets.ViewSet):
 
 # API to handle deposits related to specific goals (Custom view for deposits)
 class MakeDepositViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-
+    queryset = Deposit.objects.all()
+    serializer_class = DepositSerializer
     def create(self, request, goal_id=None):
         try:
-            goal = Goal.objects.get(id=goal_id, user=request.user)
+            print(goal_id)
+            goal = Goal.objects.get(id=goal_id, account__user=request.user)
         except Goal.DoesNotExist:
             return Response({'detail': 'Goal not found or not authorized'}, status=status.HTTP_404_NOT_FOUND)
 

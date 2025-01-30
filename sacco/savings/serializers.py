@@ -1,4 +1,4 @@
-from datetime import timezone
+from django.utils import timezone  # Correct import for timezone.now()
 from rest_framework import serializers
 from .models import Goal, Deposit, SavingMilestone, SavingReminder, TransactionHistory, GoalNotification
 
@@ -21,6 +21,13 @@ class GoalSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Deadline must be a future date.")
         return value
 
+    def create(self, validated_data):
+        # Assign the user to the goal before creating it
+        # user = self.context['request'].user  # Get the user from the request context
+        # validated_data['user'] = user  # Add the user to the validated data
+
+        # Create and return the Goal instance
+        return Goal.objects.create(**validated_data)
 
 # Serializer for the Deposit model
 class DepositSerializer(serializers.ModelSerializer):

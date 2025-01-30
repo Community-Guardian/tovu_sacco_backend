@@ -13,7 +13,7 @@ router.register(r'reminders', views.SavingReminderViewSet, basename='reminder')
 router.register(r'transactions', views.TransactionHistoryViewSet, basename='transaction')
 router.register(r'notifications', views.GoalNotificationViewSet, basename='notification')
 router.register(r'goal-progress', views.GoalProgressUpdateView, basename='goal-progress')
-router.register(r'make-deposit', views.MakeDepositViewSet, basename='make-deposit')
+router.register(r'goals/(?P<goal_id>\d+)/make-deposit', views.MakeDepositViewSet, basename='make-deposit')
 
 # URL patterns for the app
 urlpatterns = [
