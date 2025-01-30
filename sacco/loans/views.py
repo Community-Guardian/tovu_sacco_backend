@@ -1,5 +1,4 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
 from .models import Loan, LoanType, LoanRequirement, LoanPayment, UserLoanRequirement, LoanHistory
 from .serializers import (
     LoanSerializer,
@@ -20,6 +19,7 @@ from rest_framework.exceptions import ValidationError
 from django.db import models
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+
 logger = logging.getLogger(__name__)
 
 class LoanTypeViewSet(viewsets.ModelViewSet):
@@ -28,7 +28,7 @@ class LoanTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = LoanType.objects.all()
     serializer_class = LoanTypeSerializer
-    permission_classes = [IsAuthenticated]
+
 
 
 class LoanRequirementViewSet(viewsets.ModelViewSet):
@@ -37,7 +37,8 @@ class LoanRequirementViewSet(viewsets.ModelViewSet):
     """
     queryset = LoanRequirement.objects.all()
     serializer_class = LoanRequirementSerializer
-    permission_classes = [IsAuthenticated]
+
+
 
 class LoanViewSet(viewsets.ModelViewSet):
     """
@@ -46,7 +47,16 @@ class LoanViewSet(viewsets.ModelViewSet):
     queryset = Loan.objects.select_related("account", "loan_type")\
         .prefetch_related("loan_type__requirements")  # Prefetch requirements from LoanType
     serializer_class = LoanSerializer
-    permission_classes = [IsAuthenticated]
+
+
+    def get_queryset(self):
+        """
+        If the user is a customer, only return loans related to the authenticated user's account.
+        """
+        user = self.request.user
+        if user.role == "customer":  # Assuming "role" is the field used to define user roles
+            return Loan.objects.filter(account=user.account)
+        return Loan.objects.all()  # Admin or any other role has access to all loans
 
     def perform_create(self, serializer):  
         serializer.save(account=self.request.user.account)
@@ -76,13 +86,23 @@ class LoanViewSet(viewsets.ModelViewSet):
         total_interest = loan.calculate_interest()
         return Response({"loan_id": loan.id, "total_interest": total_interest}, status=HTTP_200_OK)
 
+
 class LoanPaymentViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing loan payments.
     """
     queryset = LoanPayment.objects.select_related("loan")
     serializer_class = LoanPaymentSerializer
-    permission_classes = [IsAuthenticated]
+
+
+    def get_queryset(self):
+        """
+        If the user is a customer, only return payments related to the authenticated user's loans.
+        """
+        user = self.request.user
+        if user.role == "customer":  # Assuming "role" is the field used to define user roles
+            return LoanPayment.objects.filter(loan__account=user.account)
+        return LoanPayment.objects.all()  # Admin or any other role has access to all loan payments
 
     def perform_create(self, serializer):
         # Get the loan instance related to the payment
@@ -113,13 +133,15 @@ class LoanPaymentViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
 class UserLoanRequirementViewSet(viewsets.ModelViewSet):
     """
     API endpoint to view and update user loan requirements.
     """
     queryset = UserLoanRequirement.objects.all()
     serializer_class = UserLoanRequirementSerializer
-    permission_classes = [IsAuthenticated]
+
 
     # Restricting allowed HTTP methods to GET and PATCH only
     http_method_names = ['get', 'patch']  # Only allow GET and PATCH methods
@@ -144,6 +166,8 @@ class UserLoanRequirementViewSet(viewsets.ModelViewSet):
         if instance.account.user != request.user:
             return Response({"error": "You are not authorized to update this requirement."}, status=status.HTTP_403_FORBIDDEN)
         return super().partial_update(request, *args, **kwargs)
+
+
 class LoanHistoryViewSet(viewsets.ModelViewSet):
     """
     API endpoint for retrieving loan history.
@@ -151,7 +175,7 @@ class LoanHistoryViewSet(viewsets.ModelViewSet):
     """
     queryset = LoanHistory.objects.all().order_by("-timestamp")
     serializer_class = LoanHistorySerializer
-    permission_classes = [IsAuthenticated]
+
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["loan__id"]
     ordering_fields = ["timestamp"]
