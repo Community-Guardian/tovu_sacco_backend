@@ -1,9 +1,11 @@
+from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 import logging
 from accounts.models import Account
 from django.conf import settings
+from django.db.models import Sum
 logger = logging.getLogger(__name__)
 
 class LoanRequirement(models.Model):
@@ -79,15 +81,30 @@ class Loan(models.Model):
         on_delete=models.DO_NOTHING,
         null=True,
     )
+    amount_disbursed = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    date_disbursed = models.DateTimeField(null=True, blank=True)
 
+    def disburse_loan(self, amount):
+        if self.status != "approved":
+            raise ValidationError("Cannot disburse a loan that has not been approved.")
+        
+        if amount > self.amount_approved:
+            raise ValidationError("Cannot disburse more than the approved loan amount.")
+
+        self.amount_disbursed = amount
+        self.date_disbursed = timezone.now()
+        self.save()
     def __str__(self):
         return f"Loan #{self.id} - {self.account.user.username}"
 
     def calculate_interest(self):
         """
-        Calculate the total interest for the loan.
+        Calculates interest based on reducing balance method.
         """
-        return self.amount_approved * (self.interest_rate / 100)
+        total_paid = self.payments.aggregate(Sum("amount"))["amount__sum"] or 0
+        remaining_balance = self.amount_approved - total_paid
+        return remaining_balance * (self.interest_rate / 100)
+
 
     def check_requirements(self):
         """
@@ -102,7 +119,7 @@ class Loan(models.Model):
             )
         return True
 
-    def approve_loan(self):
+    def approve_loan(self, approvee):
         """
         Approve the loan after validating requirements.
         """
@@ -110,7 +127,17 @@ class Loan(models.Model):
             self.check_requirements()
             self.status = "approved"
             self.date_approved = timezone.now()
+            self.approvee = approvee  # Track who approved the loan
             self.save()
+
+            # Log history
+            LoanHistory.objects.create(
+                loan=self,
+                changed_by=approvee,
+                change_type="approved",
+                notes=f"Loan approved for {self.amount_approved} KSh",
+            )
+
             logger.info(f"Loan #{self.id} approved successfully.")
         except ValidationError as e:
             logger.error(f"Loan #{self.id} approval failed: {str(e)}")
@@ -132,6 +159,12 @@ class Loan(models.Model):
             # Set the date approved if not already set
             if self.date_approved is None:
                 self.date_approved = timezone.now()
+        """
+        Automatically set due date based on loan duration when approved.
+        """
+        if self.status == "approved":
+            if not self.due_date:
+                self.due_date = timezone.now().date() + timedelta(days=self.loan_type.max_duration_months * 30)
 
         super().save(*args, **kwargs)
 class LoanPayment(models.Model):
@@ -144,3 +177,32 @@ class LoanPayment(models.Model):
 
     def __str__(self):
         return f"Payment of {self.amount} for Loan #{self.loan.id}"
+
+    def save(self, *args, **kwargs):
+        """
+        Prevent payments if the loan is not approved, not fully disbursed,
+        or exceeds the remaining balance.
+        """
+        if self.loan.status != "approved":
+            raise ValidationError("You cannot make a payment for a loan that has not been approved.")
+
+        if not self.loan.amount_disbursed:
+            raise ValidationError("You cannot make a payment for a loan that has not been fully disbursed.")
+
+        # Calculate total paid amount
+        total_paid = self.loan.payments.aggregate(Sum("amount"))["amount__sum"] or 0
+        remaining_balance = self.loan.amount_approved - total_paid
+
+        if self.amount > remaining_balance:
+            raise ValidationError(f"Payment exceeds remaining loan balance. You can only pay up to {remaining_balance} KSh.")
+
+        super().save(*args, **kwargs)
+class LoanHistory(models.Model):
+    loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name="history")
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    change_type = models.CharField(max_length=50, choices=[("approved", "Approved"), ("rejected", "Rejected"), ("paid", "Paid")])
+    timestamp = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.change_type} for Loan #{self.loan.id}"

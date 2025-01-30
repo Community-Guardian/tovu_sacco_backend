@@ -1,12 +1,13 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Loan, LoanType, LoanRequirement, LoanPayment, UserLoanRequirement
+from .models import Loan, LoanType, LoanRequirement, LoanPayment, UserLoanRequirement, LoanHistory
 from .serializers import (
     LoanSerializer,
     LoanTypeSerializer,
     LoanRequirementSerializer,
     LoanPaymentSerializer,
     UserLoanRequirementSerializer,
+    LoanHistorySerializer,
 )
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,7 +18,8 @@ from rest_framework import status
 import logging
 from rest_framework.exceptions import ValidationError
 from django.db import models
-
+from rest_framework.filters import OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 logger = logging.getLogger(__name__)
 
 class LoanTypeViewSet(viewsets.ModelViewSet):
@@ -142,3 +144,14 @@ class UserLoanRequirementViewSet(viewsets.ModelViewSet):
         if instance.account.user != request.user:
             return Response({"error": "You are not authorized to update this requirement."}, status=status.HTTP_403_FORBIDDEN)
         return super().partial_update(request, *args, **kwargs)
+class LoanHistoryViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for retrieving loan history.
+    Supports filtering by loan_id and ordering by timestamp.
+    """
+    queryset = LoanHistory.objects.all().order_by("-timestamp")
+    serializer_class = LoanHistorySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ["loan__id"]
+    ordering_fields = ["timestamp"]

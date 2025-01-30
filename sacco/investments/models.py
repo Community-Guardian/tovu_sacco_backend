@@ -2,6 +2,8 @@ from django.db import models
 from django.utils import timezone
 from accounts.models import Account, KYC
 from decimal import Decimal
+import logging
+logger = logging.getLogger(__name__)
 
 # Investment Type Model
 class InvestmentType(models.Model):
@@ -113,9 +115,8 @@ class Dividend(models.Model):
 
         # User's share of the total investment
         user_share = user_investment.invested_amount / total_investment_value
-        print("user_share", user_share)
 
-        return self.amount * user_share
+        return user_investment.current_profit_or_loss * user_share
 
     @property
     def calculate_dividend(self):

@@ -6,6 +6,8 @@ from threading import local
 from .models import Investment, InvestmentAccount, Dividend, InvestmentType, UserInvestment
 from accounts.models import Account
 from django.db.models import Sum
+import logging
+logger = logging.getLogger(__name__)
 
 # ✅ Thread-local storage to track recursion per request
 _recursion_tracker = local()
@@ -24,7 +26,7 @@ def create_investment_account(sender, instance, created, **kwargs):
                 amount=Decimal('0.00'),
                 is_distributed=False
             )
-        print(f"Investment Account & Dividends created for {instance.user.username}")
+        logger.info(f"Investment Account & Dividends created for {instance.user.username}")
 
 # 📊 2. Ensure investment limit is not exceeded before saving
 @receiver(pre_save, sender=UserInvestment)
@@ -112,16 +114,15 @@ def update_dividend_distribution(sender, instance, **kwargs):
                     for user_investment in user_investments:
                         user_share = dividend.calculate_user_dividend_share(user_investment)
                         total_dividend += user_share
-                    print('user_share', total_dividend)
 
                     # Ensure total_dividend is Decimal and update the dividend amount
                     dividend.amount = total_dividend
                     dividend.save(update_fields=["amount"])
-                    print(f"Dividend updated for {instance.account.account.user.username}")
+                    logger.info(f"Dividend updated for {instance.account.account.user.username}")
                 else:
-                    print(f"No investments to calculate dividend for {instance.account.account.user.username}")
+                    logger.info(f"No investments to calculate dividend for {instance.account.account.user.username}")
             else:
-                print(f"No dividend found for {instance.account.account.user.username}")
+                logger.info(f"No dividend found for {instance.account.account.user.username}")
 
     finally:
         _recursion_tracker.dividend_update = False  # Reset flag
@@ -179,7 +180,7 @@ def update_investment_total(sender, instance, created, **kwargs):
             investment.amount_invested = total_invested
             investment.save(update_fields=["amount_invested"])
 
-        print(f"Updated total investment for {investment.investment_type.name} to {total_invested}")
+        logger.info(f"Updated total investment for {investment.investment_type.name} to {total_invested}")
 
 # 🔄 9. Update Investment current value based on ROI
 @receiver(pre_save, sender=Investment)

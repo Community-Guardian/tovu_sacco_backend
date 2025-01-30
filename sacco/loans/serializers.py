@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Loan, LoanType, LoanRequirement, LoanPayment, UserLoanRequirement
+from .models import Loan, LoanType, LoanRequirement, LoanPayment, UserLoanRequirement,LoanHistory
 
 class LoanRequirementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -96,3 +96,10 @@ class UserLoanRequirementSerializer(serializers.ModelSerializer):
         instance.document = validated_data.get("document", instance.document)
         instance.save()
         return instance
+class LoanHistorySerializer(serializers.ModelSerializer):
+    changed_by = serializers.StringRelatedField()  # Display username instead of user ID
+    loan_id = serializers.IntegerField(source="loan.id", read_only=True)  # Include Loan ID
+
+    class Meta:
+        model = LoanHistory
+        fields = ["id", "loan_id", "changed_by", "change_type", "timestamp", "notes"]
