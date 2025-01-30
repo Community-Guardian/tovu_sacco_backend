@@ -114,9 +114,7 @@ class Loan(models.Model):
         unfulfilled_requirements = user_requirements.filter(is_fulfilled=False)
 
         if unfulfilled_requirements.exists():
-            raise ValidationError(
-                f"The following requirements are not fulfilled: {', '.join([req.requirement.name for req in unfulfilled_requirements])}"
-            )
+            return False
         return True
 
     def approve_loan(self, approvee):

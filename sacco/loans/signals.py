@@ -188,7 +188,7 @@ def check_fulfilled_requirements(sender, instance, **kwargs):
     loan = Loan.objects.filter(account=instance.account, status="pending").first()
     if loan and loan.check_requirements():
         loan.status = "approved"
-        loan.date_approved = timezone.now()
+        loan.date_approved = now()
         loan.save()
 @receiver(post_save, sender=Loan)
 def log_loan_status_change(sender, instance, created, **kwargs):
@@ -196,7 +196,7 @@ def log_loan_status_change(sender, instance, created, **kwargs):
     Create a LoanHistory record when a loan is approved or rejected.
     """
     if not created:  # Ensure it's an update, not a new loan creation
-        if instance.status in ["approved", "rejected"]:
+        if instance.status in ["approved", "rejected", "repaid"]:
             LoanHistory.objects.create(
                 loan=instance,
                 changed_by=instance.approvee,
