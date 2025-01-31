@@ -242,6 +242,7 @@ def update_balance_on_loan(sender, instance, created, **kwargs):
         logger.error(f"Error processing loan transaction {instance.transaction_id}: {str(e)}")
         raise
 
+
 @receiver(post_save, sender=InvestmentTransaction)
 @transaction.atomic
 def update_balance_on_investment(sender, instance, created, **kwargs):
@@ -253,22 +254,26 @@ def update_balance_on_investment(sender, instance, created, **kwargs):
         return
 
     try:
-        account = instance.account
+        investment = instance.investment
         amount = instance.amount
 
-        # Validate account
-        if not account:
-            logger.warning(f"Investment transaction {instance.transaction_id} failed: Missing account.")
+        # Validate investment
+        if not investment:
+            logger.warning(f"Investment transaction {instance.transaction_id} failed: Missing investment.")
             return
 
-        # Perform balance update
-        account.account_balance -= amount
+        if instance.transaction_type == "investment":
+            # Update investment amount
+            investment.amount_invested += amount
+        elif instance.transaction_type == "withdraw":
+            # Update investment amount
+            investment.amount_invested -= amount
 
         # Set is_processed to True
         instance.is_processed = True
 
-        # Save account
-        account.save()
+        # Save investment
+        investment.save()
 
         # Save instance
         instance.save()
@@ -277,6 +282,7 @@ def update_balance_on_investment(sender, instance, created, **kwargs):
     except Exception as e:
         logger.error(f"Error processing investment transaction {instance.transaction_id}: {str(e)}")
         raise
+
 
 @receiver(post_save, sender=SavingTransaction)
 @transaction.atomic
@@ -289,22 +295,26 @@ def update_balance_on_saving(sender, instance, created, **kwargs):
         return
 
     try:
-        account = instance.account
+        goal = instance.goal
         amount = instance.amount
 
-        # Validate account
-        if not account:
-            logger.warning(f"Saving transaction {instance.transaction_id} failed: Missing account.")
+        # Validate goal
+        if not goal:
+            logger.warning(f"Saving transaction {instance.transaction_id} failed: Missing goal.")
             return
 
-        # Perform balance update
-        account.account_balance += amount
+        if instance.transaction_type == "saving":
+            # Update goal amount
+            goal.current_amount += amount
+        elif instance.transaction_type == "withdraw":
+            # Update goal amount
+            goal.current_amount -= amount
 
         # Set is_processed to True
         instance.is_processed = True
 
-        # Save account
-        account.save()
+        # Save goal
+        goal.save()
 
         # Save instance
         instance.save()

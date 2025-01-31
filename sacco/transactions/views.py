@@ -9,6 +9,8 @@ from payments.mpesa import MpesaPaymentService
 from rest_framework.views import APIView
 from accounts.models import Account
 from savings.models import Goal
+from django.utils import timezone
+from .models import InvestmentTransaction, Investment
 
 class TransferTransactionViewSet(viewsets.ModelViewSet):
     queryset = TransferTransaction.objects.all()
@@ -237,11 +239,197 @@ class InvestmentTransactionViewSet(viewsets.ModelViewSet):
     serializer_class = InvestmentTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=False, methods=['post'])
+    def deposit(self, request):
+        data = request.data
+        investment_id = data.get('investment_id')
+        amount = data.get('amount')
+        description = data.get('description', 'Investment Deposit')
+        account_id = data.get('account_id')
+
+        # Validate investment
+        try:
+            investment = Investment.objects.get(pk=investment_id)
+            if not investment.is_active:
+                return Response({'error': 'Cannot deposit into an inactive investment.'}, status=400)
+        except Investment.DoesNotExist:
+            return Response({'error': 'Investment does not exist.'}, status=400)
+
+        # Validate account
+        try:
+            account = Account.objects.get(pk=account_id)
+            if account.user != request.user:
+                return Response({'error': 'Account does not belong to the user.'}, status=400)
+            if account.account_balance < amount:
+                return Response({'error': 'Insufficient funds in account.'}, status=400)
+        except Account.DoesNotExist:
+            return Response({'error': 'Account does not exist.'}, status=400)
+
+        try:
+            # Deduct amount from account balance
+            account.account_balance -= amount
+            account.save()
+
+            # Create investment transaction
+            transaction = InvestmentTransaction.objects.create(
+                user=request.user,
+                investment=investment,
+                amount=amount,
+                description=description,
+                status="completed",
+                payment_method="in-house",
+                transaction_type="investment"
+            )
+
+            return Response({'transaction_id': transaction.transaction_id}, status=201)
+        except Exception as e:
+            return Response({'error': 'An error occurred while processing the deposit.'}, status=500)
+
+    @action(detail=False, methods=['post'])
+    def withdraw(self, request):
+        data = request.data
+        investment_id = data.get('investment_id')
+        amount = data.get('amount')
+        description = data.get('description', 'Investment Withdrawal')
+        account_id = data.get('account_id')
+
+        # Validate investment
+        try:
+            investment = Investment.objects.get(pk=investment_id)
+            if not investment.is_active:
+                return Response({'error': 'Cannot withdraw from an inactive investment.'}, status=400)
+            if investment.maturity_date > timezone.now():
+                return Response({'error': 'Cannot withdraw before the maturity date.'}, status=400)
+        except Investment.DoesNotExist:
+            return Response({'error': 'Investment does not exist.'}, status=400)
+
+        # Validate account
+        try:
+            account = Account.objects.get(pk=account_id)
+            if account.user != request.user:
+                return Response({'error': 'Account does not belong to the user.'}, status=400)
+        except Account.DoesNotExist:
+            return Response({'error': 'Account does not exist.'}, status=400)
+
+        try:
+            # Create investment transaction
+            transaction = InvestmentTransaction.objects.create(
+                user=request.user,
+                investment=investment,
+                amount=amount,
+                description=description,
+                status="completed",
+                payment_method="in-house",
+                transaction_type="withdraw"
+            )
+
+            # Add amount to account balance
+            account.account_balance += amount
+            account.save()
+
+            return Response({'transaction_id': transaction.transaction_id}, status=201)
+        except Exception as e:
+            return Response({'error': 'An error occurred while processing the withdrawal.'}, status=500)
 class SavingTransactionViewSet(viewsets.ModelViewSet):
     queryset = SavingTransaction.objects.all()
     serializer_class = SavingTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=False, methods=['post'])
+    def deposit(self, request):
+        data = request.data
+        goal_id = data.get('goal_id')
+        amount = data.get('amount')
+        description = data.get('description', 'Saving Deposit')
+        account_id = data.get('account_id')
+
+        # Validate goal
+        try:
+            goal = Goal.objects.get(pk=goal_id, account__user=request.user)
+        except Goal.DoesNotExist:
+            return Response({'error': 'Goal does not exist or not authorized.'}, status=400)
+
+        # Validate account
+        try:
+            account = Account.objects.get(pk=account_id)
+            if account.user != request.user:
+                return Response({'error': 'Account does not belong to the user.'}, status=400)
+            if account.account_balance < amount:
+                return Response({'error': 'Insufficient funds in account.'}, status=400)
+        except Account.DoesNotExist:
+            return Response({'error': 'Account does not exist.'}, status=400)
+
+        try:
+            # Deduct amount from account balance
+            account.account_balance -= amount
+            account.save()
+
+            # Update goal amount
+            goal.current_amount += amount
+            goal.save()
+
+            # Create saving transaction
+            transaction = SavingTransaction.objects.create(
+                user=request.user,
+                goal=goal,
+                amount=amount,
+                description=description,
+                status="completed",
+                payment_method="in-house",
+                transaction_type="saving"
+            )
+
+            return Response({'transaction_id': transaction.transaction_id}, status=201)
+        except Exception as e:
+            return Response({'error': 'An error occurred while processing the deposit.'}, status=500)
+
+    @action(detail=False, methods=['post'])
+    def withdraw(self, request):
+        data = request.data
+        goal_id = data.get('goal_id')
+        amount = data.get('amount')
+        description = data.get('description', 'Saving Withdrawal')
+        account_id = data.get('account_id')
+
+        # Validate goal
+        try:
+            goal = Goal.objects.get(pk=goal_id, account__user=request.user)
+            if goal.current_amount < amount:
+                return Response({'error': 'Insufficient funds in goal.'}, status=400)
+        except Goal.DoesNotExist:
+            return Response({'error': 'Goal does not exist or not authorized.'}, status=400)
+
+        # Validate account
+        try:
+            account = Account.objects.get(pk=account_id)
+            if account.user != request.user:
+                return Response({'error': 'Account does not belong to the user.'}, status=400)
+        except Account.DoesNotExist:
+            return Response({'error': 'Account does not exist.'}, status=400)
+
+        try:
+            # Deduct amount from goal
+            goal.current_amount -= amount
+            goal.save()
+
+            # Add amount to account balance
+            account.account_balance += amount
+            account.save()
+
+            # Create saving transaction
+            transaction = SavingTransaction.objects.create(
+                user=request.user,
+                goal=goal,
+                amount=amount,
+                description=description,
+                status="completed",
+                payment_method="in-house",
+                transaction_type="withdraw"
+            )
+
+            return Response({'transaction_id': transaction.transaction_id}, status=201)
+        except Exception as e:
+            return Response({'error': 'An error occurred while processing the withdrawal.'}, status=500)
 class MinimumSharesDepositTransactionViewSet(viewsets.ModelViewSet):
     queryset = MinimumSharesDepositTransaction.objects.all()
     serializer_class = MinimumSharesDepositTransactionSerializer
