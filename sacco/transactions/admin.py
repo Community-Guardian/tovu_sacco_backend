@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BaseTransaction, TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction, AuditTransaction
+from .models import BaseTransaction, TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction, MinimumSharesDepositTransaction, AuditTransaction
 from django.utils.html import format_html
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse  # Use reverse from django.urls
@@ -22,33 +22,40 @@ class AuditTransactionAdmin(admin.ModelAdmin):
         )
 
 
-# Admin for TransferTransaction
 class TransferTransactionAdmin(admin.ModelAdmin):
-    list_display = ('transaction_id', 'user',  'amount', 'status', 'transaction_type', 'payment_method', 'date', 'sender_account', 'receiver_account')
+    list_display = ('transaction_id', 'user', 'amount', 'status', 'transaction_type', 'payment_method', 'date', 'sender_account', 'receiver_account')
     search_fields = ('transaction_id', 'user__username', 'receiver_account__user__username', 'payment_method', 'status')
     list_filter = ('status', 'payment_method', 'transaction_type')
     ordering = ('-date',)
 
-# Admin for WithdrawTransaction
+
 class WithdrawTransactionAdmin(admin.ModelAdmin):
     list_display = ('transaction_id', 'user', 'account', 'amount', 'status', 'transaction_type', 'payment_method', 'date')
     search_fields = ('transaction_id', 'user__username', 'account__name', 'payment_method', 'status')
     list_filter = ('status', 'payment_method', 'transaction_type')
     ordering = ('-date',)
 
-# Admin for RefundTransaction
+
 class RefundTransactionAdmin(admin.ModelAdmin):
     list_display = ('transaction_id', 'user', 'account', 'amount', 'status', 'transaction_type', 'payment_method', 'date')
     search_fields = ('transaction_id', 'user__username', 'account__name', 'payment_method', 'status')
     list_filter = ('status', 'payment_method', 'transaction_type')
     ordering = ('-date',)
 
-# Admin for DepositTransaction
+
 class DepositTransactionAdmin(admin.ModelAdmin):
     list_display = ('transaction_id', 'user', 'account', 'amount', 'status', 'transaction_type', 'payment_method', 'date')
     search_fields = ('transaction_id', 'user__username', 'account__name', 'payment_method', 'status')
     list_filter = ('status', 'payment_method', 'transaction_type')
     ordering = ('-date',)
+
+
+class MinimumSharesDepositTransactionAdmin(admin.ModelAdmin):
+    list_display = ('transaction_id', 'user', 'account', 'amount', 'status', 'transaction_type', 'payment_method', 'date')
+    search_fields = ('transaction_id', 'user__username', 'account__name', 'payment_method', 'status')
+    list_filter = ('status', 'payment_method', 'transaction_type')
+    ordering = ('-date',)
+
 
 # Registering models in admin
 admin.site.register(AuditTransaction, AuditTransactionAdmin)
@@ -56,3 +63,4 @@ admin.site.register(TransferTransaction, TransferTransactionAdmin)
 admin.site.register(WithdrawTransaction, WithdrawTransactionAdmin)
 admin.site.register(RefundTransaction, RefundTransactionAdmin)
 admin.site.register(DepositTransaction, DepositTransactionAdmin)
+admin.site.register(MinimumSharesDepositTransaction, MinimumSharesDepositTransactionAdmin)

@@ -1,19 +1,14 @@
-from rest_framework import viewsets, permissions,status
+from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound,ValidationError,PermissionDenied
-from django.shortcuts import get_object_or_404
-from .models import BaseTransaction, TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction
-from .serializers import (
-    BaseTransactionSerializer,
-    TransferTransactionSerializer,
-    WithdrawTransactionSerializer,
-    RefundTransactionSerializer,
-    DepositTransactionSerializer
-)
+from .models import TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction, LoanTransaction, InvestmentTransaction, SavingTransaction, MinimumSharesDepositTransaction, AuditTransaction,Loan
+from .serializers import TransferTransactionSerializer, WithdrawTransactionSerializer, RefundTransactionSerializer, DepositTransactionSerializer, LoanTransactionSerializer, InvestmentTransactionSerializer, SavingTransactionSerializer, MinimumSharesDepositTransactionSerializer, AuditTransactionSerializer
+from payments.factory import PaymentServiceFactory
+from payments.mpesa_withdrawal_service import MpesaWithdrawalService
+from payments.mpesa import MpesaPaymentService
+from rest_framework.views import APIView
 from accounts.models import Account
-from django.db.models import Q
- 
+from savings.models import Goal
 
 class TransferTransactionViewSet(viewsets.ModelViewSet):
     queryset = TransferTransaction.objects.all()
@@ -22,165 +17,283 @@ class TransferTransactionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def create_transfer(self, request):
-        data = request.data.copy()  # Create a mutable copy
+        data = request.data.copy()
         if 'user' not in data:
-            data['user'] = request.user.id  # Add the user to the data
+            data['user'] = request.user.id
 
-        serializer = self.get_serializer(data=data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)  # Save with the logged-in user
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
-    def get_queryset(self):
-        user = self.request.user
-        if not user.role:  # Ensure role exists
-            raise PermissionDenied("User role is not defined.")
+        sender_account_id = data.get('sender_account')
+        receiver_account_id = data.get('receiver_account')
+        sender_goal_id = data.get('sender_goal')
+        receiver_goal_id = data.get('receiver_goal')
+        amount = data.get('amount')
 
-        if user.role == 'customer':
-            return TransferTransaction.objects.filter(user=user)
+        # Validate sender and receiver
+        if not sender_account_id and not sender_goal_id:
+            return Response({'error': 'Sender account or goal must be provided.'}, status=400)
+        if not receiver_account_id and not receiver_goal_id:
+            return Response({'error': 'Receiver account or goal must be provided.'}, status=400)
+        if (sender_account_id and sender_account_id == receiver_account_id) :
+            return Response({'error': 'Cannot transfer to the same account '}, status=400)
+        try:
+            if sender_account_id:
+                sender_account = Account.objects.get(pk=sender_account_id)
+                if sender_account.user != request.user:
+                    return Response({'error': 'Sender account does not belong to the user.'}, status=400)
+            else:
+                sender_account = None
 
-        return TransferTransaction.objects.all()
+            if receiver_account_id:
+                receiver_account = Account.objects.get(pk=receiver_account_id)
+                # if receiver_account.user != request.user:
+                #     return Response({'error': 'Receiver account does not belong to the user.'}, status=400)
+            else:
+                receiver_account = None
+
+            if sender_goal_id:
+                sender_goal = Goal.objects.get(pk=sender_goal_id)
+                if sender_goal.account.user != request.user:
+                    return Response({'error': 'Sender goal does not belong to the user.'}, status=400)
+            else:
+                sender_goal = None
+
+            if receiver_goal_id:
+                receiver_goal = Goal.objects.get(pk=receiver_goal_id)
+                if receiver_goal.account.user != request.user:
+                    return Response({'error': 'Receiver goal does not belong to the user.'}, status=400)
+            else:
+                receiver_goal = None
+
+            # Ensure the sender has enough balance
+            if sender_account and sender_account.account_balance < amount:
+                return Response({'error': 'Insufficient funds in sender account.'}, status=400)
+            if sender_goal and sender_goal.current_amount < amount:
+                return Response({'error': 'Insufficient funds in sender goal.'}, status=400)
+
+            # Perform the transfer
+            if sender_account:
+                sender_account.account_balance -= amount
+                sender_account.save()
+            if sender_goal:
+                sender_goal.current_amount -= amount
+                sender_goal.save()
+
+            if receiver_account:
+                receiver_account.account_balance += amount
+                receiver_account.save()
+            if receiver_goal:
+                receiver_goal.current_amount += amount
+                receiver_goal.save()
+
+            # Create the transfer transaction
+            data['payment_method'] = 'in-house'
+            data['status'] = 'completed'
+            serializer = self.get_serializer(data=data)
+            if serializer.is_valid():
+                serializer.save(user=request.user)
+                return Response(serializer.data, status=201)
+            return Response(serializer.errors, status=400)
+
+        except Account.DoesNotExist:
+            return Response({'error': 'Account does not exist.'}, status=400)
+        except Goal.DoesNotExist:
+            return Response({'error': 'Goal does not exist.'}, status=400)
+
 class WithdrawTransactionViewSet(viewsets.ModelViewSet):
     queryset = WithdrawTransaction.objects.all()
     serializer_class = WithdrawTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        data = request.data.copy()
+    @action(detail=False, methods=['post'])
+    def initiate_withdrawal(self, request):
+        data = request.data
+        payment_method = data.get('payment_method')
+        phone_number = data.get('phone_number')
+        amount = data.get('amount')
+        description = data.get('description', 'Withdrawal via M-Pesa')
+        account_id = data.get('account_id')
 
-        # Ensure the user is assigned to the transaction
-        if 'user' not in data:
-            data['user'] = request.user.id
-
-        # Validate that the account exists and belongs to the user
+        # Validate account
         try:
-            account_id = int(data.get('account', 0))  # Ensure the ID is an integer
-            account = Account.objects.get(pk=account_id, user=request.user)
-        except ValueError:
-            return Response({"detail": "Invalid account ID."}, status=status.HTTP_400_BAD_REQUEST)
+            account = Account.objects.get(pk=account_id)
+            if(account.user != request.user):
+                return Response({'error': 'Account does not belong to the user'}, status=400)
         except Account.DoesNotExist:
-            return Response({"detail": "Invalid account or the account does not belong to the user."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Account does not exist'}, status=400)
 
-        # Validate withdrawal amount against account balance
         try:
-            withdrawal_amount = int(data.get('amount', 0))
-            if withdrawal_amount <= 0:
-                return Response({"detail": "Withdrawal amount must be greater than zero."}, status=status.HTTP_400_BAD_REQUEST)
-            if withdrawal_amount > account.account_balance:
-                return Response({"detail": f"Withdrawal amount ({withdrawal_amount}) exceeds account balance ({account.account_balance})."}, status=status.HTTP_400_BAD_REQUEST)
-        except ValueError:
-            return Response({"detail": "Invalid withdrawal amount."}, status=status.HTTP_400_BAD_REQUEST)
+            if payment_method == "mpesa":
+                transaction = MpesaWithdrawalService.initiate_withdrawal(phone_number, amount, description, request.user, account)
+                return Response({'transaction_id': transaction.transaction_id}, status=201)
+            else:
+                return Response({'error': 'Unsupported payment method'}, status=400)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+        except Exception as e:
+            return Response({'error': 'An error occurred while initiating the withdrawal.'}, status=500)
 
-        # Serialize and save the transaction
-        serializer = self.get_serializer(data=data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)  # Save with the logged-in user
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    def get_queryset(self):
-        user = self.request.user
-        if not user.role:  # Ensure role exists
-            raise PermissionDenied("User role is not defined.")
-
-        if user.role == 'customer':
-            return WithdrawTransaction.objects.filter(user=user)
-
-        return WithdrawTransaction.objects.all()
 class RefundTransactionViewSet(viewsets.ModelViewSet):
     queryset = RefundTransaction.objects.all()
     serializer_class = RefundTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    @action(detail=False, methods=['post'])
-    def create_refund(self, request):
-        data = request.data.copy()  # Create a mutable copy
-        if 'user' not in data:
-            data['user'] = request.user.id  # Add the user to the data
-        
-        serializer = self.get_serializer(data=data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)  # Save with the logged-in user
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
-    def get_queryset(self):
-        user = self.request.user
-        if not user.role:  # Ensure role exists
-            raise PermissionDenied("User role is not defined.")
-
-        if user.role == 'customer':
-            return RefundTransaction.objects.filter(user=user)
-
-        return RefundTransaction.objects.all()
 
 class DepositTransactionViewSet(viewsets.ModelViewSet):
     queryset = DepositTransaction.objects.all()
     serializer_class = DepositTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        if not user.role:  # Ensure role exists
-            raise PermissionDenied("User role is not defined.")
-
-        if user.role == 'customer':
-            return DepositTransaction.objects.filter(user=user)
-
-        return DepositTransaction.objects.all()
     @action(detail=False, methods=['post'])
-    def create_deposit(self, request):
-        data = request.data.copy()  # Create a mutable copy
-        if 'user' not in data:
-            data['user'] = request.user.id  # Add the user to the data
-        
-        serializer = self.get_serializer(data=data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)  # Save with the logged-in user
-            serializer.save(status='pending')  # Set status as pending
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+    def initiate_payment(self, request):
+        data = request.data
+        payment_method = data.get('payment_method')
+        phone_number = data.get('phone_number')
+        amount = data.get('amount')
+        description = data.get('description', 'Payment via M-Pesa')
+        account_id = data.get('account_id')
 
+        # Validate account
+        try:
+            account = Account.objects.get(pk=account_id)
+        except Account.DoesNotExist:
+            return Response({'error': 'Account does not exist'}, status=400)
 
-class TransactionStatusViewSet(viewsets.ViewSet):
+        try:
+            payment_service = PaymentServiceFactory.get_payment_service(payment_method)
+            transaction = payment_service.initiate_payment(phone_number, amount, description, request.user, account)
+            transaction.account = account
+            transaction.save()
+            return Response({'transaction_id': transaction.transaction_id}, status=201)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+        except Exception as e:
+            return Response({'error': 'An error occurred while initiating the payment.'}, status=500)
+class LoanTransactionViewSet(viewsets.ModelViewSet):
+    queryset = LoanTransaction.objects.all()
+    serializer_class = LoanTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=False, methods=['get'])
-    def filter_by_status(self, request):
-        # Get the 'status' parameter from the request
-        status = request.query_params.get('status', None)
-        if not status:
-            raise NotFound(detail="Status parameter is required.")
-        
-        # Check the role of the user (customer or others)
-        user_role = request.user.role
+    @action(detail=False, methods=['post'])
+    def pay_loan(self, request):
+        data = request.data
+        payment_method = data.get('payment_method')
+        phone_number = data.get('phone_number')
+        amount = data.get('amount')
+        description = data.get('description', 'Loan Payment')
+        loan_id = data.get('loan_id')
+        account_id = data.get('account_id')
 
-        # Fetch transactions based on status and the user role
-        if user_role == 'customer':
-            # If the user is a customer, filter only their own transactions
-            transfer_transactions = TransferTransaction.objects.filter(status=status, user=request.user)
-            withdraw_transactions = WithdrawTransaction.objects.filter(status=status, user=request.user)
-            refund_transactions = RefundTransaction.objects.filter(status=status, user=request.user)
-            deposit_transactions = DepositTransaction.objects.filter(status=status, user=request.user)
+        # Validate loan
+        try:
+            loan = Loan.objects.get(pk=loan_id)
+            if loan.status != "approved":
+                return Response({'error': 'Only disbursed loans can be paid for.'}, status=400)
+        except Loan.DoesNotExist:
+            return Response({'error': 'Loan does not exist.'}, status=400)
+
+        # Validate account if provided
+        if account_id:
+            try:
+                account = Account.objects.get(pk=account_id)
+                if account.user != request.user:
+                    return Response({'error': 'Account does not belong to the user.'}, status=400)
+                if account.account_balance < amount:
+                    return Response({'error': 'Insufficient funds in account.'}, status=400)
+            except Account.DoesNotExist:
+                return Response({'error': 'Account does not exist.'}, status=400)
         else:
-            # For other roles, fetch transactions for all users (or apply any other role-specific filtering logic)
-            transfer_transactions = TransferTransaction.objects.filter(status=status)
-            withdraw_transactions = WithdrawTransaction.objects.filter(status=status)
-            refund_transactions = RefundTransaction.objects.filter(status=status)
-            deposit_transactions = DepositTransaction.objects.filter(status=status)
+            account = None
 
-        # Combine the results manually
-        transactions = list(transfer_transactions) + list(withdraw_transactions) + list(refund_transactions) + list(deposit_transactions)
+        try:
+            if payment_method == "mpesa":
+                payment_service = PaymentServiceFactory.get_payment_service(payment_method)
+                transaction = payment_service.initiate_payment(phone_number, amount, description, request.user,account)
+                transaction.loan = loan
+                transaction.save()
+            elif account:
+                # Deduct amount from account balance
+                account.account_balance -= amount
+                account.save()
 
-        # Serialize the results
-        if transactions:
-            if isinstance(transactions[0], TransferTransaction):
-                serializer = TransferTransactionSerializer(transactions, many=True)
-            elif isinstance(transactions[0], WithdrawTransaction):
-                serializer = WithdrawTransactionSerializer(transactions, many=True)
-            elif isinstance(transactions[0], RefundTransaction):
-                serializer = RefundTransactionSerializer(transactions, many=True)
-            elif isinstance(transactions[0], DepositTransaction):
-                serializer = DepositTransactionSerializer(transactions, many=True)
-            
-            return Response(serializer.data)
-        else:
-            return Response([])
+                # Create loan transaction
+                transaction = LoanTransaction.objects.create(
+                    user=request.user,
+                    loan=loan,
+                    amount=amount,
+                    description=description,
+                    status="completed",
+                    payment_method="in-house",
+                    transaction_type="loan"
+                )
+            else:
+                return Response({'error': 'Unsupported payment method or missing account.'}, status=400)
+
+            return Response({'transaction_id': transaction.transaction_id}, status=201)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+        except Exception as e:
+            return Response({'error': 'An error occurred while initiating the payment.'}, status=500)
+
+class InvestmentTransactionViewSet(viewsets.ModelViewSet):
+    queryset = InvestmentTransaction.objects.all()
+    serializer_class = InvestmentTransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class SavingTransactionViewSet(viewsets.ModelViewSet):
+    queryset = SavingTransaction.objects.all()
+    serializer_class = SavingTransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class MinimumSharesDepositTransactionViewSet(viewsets.ModelViewSet):
+    queryset = MinimumSharesDepositTransaction.objects.all()
+    serializer_class = MinimumSharesDepositTransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def initiate_payment(self, request):
+        data = request.data
+        payment_method = data.get('payment_method')
+        phone_number = data.get('phone_number')
+        amount = data.get('amount')
+        description = data.get('description', 'Minimum Shares Deposit via M-Pesa')
+        account_id = data.get('account_id')
+
+        # Validate account
+        try:
+            account = Account.objects.get(pk=account_id)
+        except Account.DoesNotExist:
+            return Response({'error': 'Account does not exist'}, status=400)
+        try:
+            payment_service = PaymentServiceFactory.get_payment_service(payment_method)
+            transaction = payment_service.initiate_payment(phone_number, amount, description, request.user, account)
+            return Response({'transaction_id': transaction.transaction_id}, status=201)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+        except Exception as e:
+            return Response({'error': 'An error occurred while initiating the payment.'}, status=500)
+class AuditTransactionViewSet(viewsets.ModelViewSet):
+    queryset = AuditTransaction.objects.all()
+    serializer_class = AuditTransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Ensure AuditTransaction deletes correctly
+        AuditTransaction.objects.filter(transaction_type=instance.__class__, transaction_id=instance.id).delete()
+        instance.delete()
+        return Response({"message": "DepositTransaction deleted successfully"}, status=204)
+class MpesaCallbackView(APIView):
+    """
+    API endpoint for handling M-Pesa callbacks.
+    """
+    permission_classes = []
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        try:
+            if 'stkCallback' in data.get('Body', {}):
+                MpesaPaymentService.handle_callback(data)
+            elif 'Result' in data:
+                MpesaWithdrawalService.handle_withdrawal_callback(data)
+            else:
+                return Response({'error': 'Invalid callback data'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'success'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

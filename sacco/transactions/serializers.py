@@ -1,82 +1,102 @@
 from rest_framework import serializers
-from .models import BaseTransaction, TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction
+from .models import TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction, LoanTransaction, InvestmentTransaction, SavingTransaction, MinimumSharesDepositTransaction, AuditTransaction
 from accounts.models import Account
-from django.contrib.auth import get_user_model
+from loans.models import Loan
+from investments.models import Investment
+from savings.models import Goal
 from userManager.serializers import CustomUserSerializer
-User = get_user_model()
-
-class BaseTransactionSerializer(serializers.ModelSerializer):
-    """
-    Serializer for BaseTransaction model. 
-    This includes the common fields for all transaction types.
-    """
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
-    transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="transfer")
-    payment_method = serializers.ChoiceField(choices=BaseTransaction.PAYMENT_METHODS, default="in-house")
-
-    class Meta:
-        model = BaseTransaction
-        fields = '__all__'  # Include all fields from BaseTransaction
-
 
 class TransferTransactionSerializer(serializers.ModelSerializer):
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
-    transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="transfer")
+    sender_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), required=False)
+    receiver_account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), required=False)
+    sender_goal = serializers.PrimaryKeyRelatedField(queryset=Goal.objects.all(), required=False)
+    receiver_goal = serializers.PrimaryKeyRelatedField(queryset=Goal.objects.all(), required=False)
     user = CustomUserSerializer(read_only=True)
+
     class Meta:
         model = TransferTransaction
-        fields = '__all__'  # Include all fields from TransferTransaction
-
-    def create(self, validated_data):
-        """
-        Override the create method to add the user field during creation.
-        """
-        user = self.context['request'].user  # Access the user from request context
-        validated_data['user'] = user  # Add the user to the validated data
-        
-        return super().create(validated_data)  # Proceed with the original create method
+        fields = '__all__'
 
 
 class WithdrawTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
-    transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="withdraw")
     user = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = WithdrawTransaction
-        fields = '__all__'  # Include all fields from WithdrawTransaction
-
+        fields = '__all__'
 
 class RefundTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS, default="completed")
-    transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE, default="refund")
     user = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = RefundTransaction
-        fields = '__all__'  # Include all fields from RefundTransaction
-
-    def create(self, validated_data):
-        user = self.context['request'].user  # Access the user from request context
-        validated_data['user'] = user  # Add the user to the validated data
-        
-        return super().create(validated_data)  # Proceed with the original create method
-
+        fields = '__all__'
 
 class DepositTransactionSerializer(serializers.ModelSerializer):
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    status = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_STATUS , default="completed")
-    transaction_type = serializers.ChoiceField(choices=BaseTransaction.TRANSACTION_TYPE ,default="deposit")
     user = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = DepositTransaction
-        fields = '__all__'  # Include all fields from DepositTransaction
+        fields = '__all__'
 
-    def create(self, validated_data):
-        user = self.context['request'].user  # Access the user from request context
-        validated_data['user'] = user  # Add the user to the validated data
-        
-        return super().create(validated_data)  # Proceed with the original create method
+class LoanTransactionSerializer(serializers.ModelSerializer):
+    loan = serializers.PrimaryKeyRelatedField(queryset=Loan.objects.all())
+    user = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = LoanTransaction
+        fields = '__all__'
+
+class InvestmentTransactionSerializer(serializers.ModelSerializer):
+    investment = serializers.PrimaryKeyRelatedField(queryset=Investment.objects.all())
+    user = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = InvestmentTransaction
+        fields = '__all__'
+
+class SavingTransactionSerializer(serializers.ModelSerializer):
+    goal = serializers.PrimaryKeyRelatedField(queryset=Goal.objects.all())
+    user = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = SavingTransaction
+        fields = '__all__'
+
+class MinimumSharesDepositTransactionSerializer(serializers.ModelSerializer):
+    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
+    user = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = MinimumSharesDepositTransaction
+        fields = '__all__'
+
+class AuditTransactionSerializer(serializers.ModelSerializer):
+    transaction = serializers.SerializerMethodField()
+    updated_by = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = AuditTransaction
+        fields = '__all__'
+
+    def get_transaction(self, obj):
+        if isinstance(obj.transaction, TransferTransaction):
+            return TransferTransactionSerializer(obj.transaction).data
+        elif isinstance(obj.transaction, WithdrawTransaction):
+            return WithdrawTransactionSerializer(obj.transaction).data
+        elif isinstance(obj.transaction, RefundTransaction):
+            return RefundTransactionSerializer(obj.transaction).data
+        elif isinstance(obj.transaction, DepositTransaction):
+            return DepositTransactionSerializer(obj.transaction).data
+        elif isinstance(obj.transaction, LoanTransaction):
+            return LoanTransactionSerializer(obj.transaction).data
+        elif isinstance(obj.transaction, InvestmentTransaction):
+            return InvestmentTransactionSerializer(obj.transaction).data
+        elif isinstance(obj.transaction, SavingTransaction):
+            return SavingTransactionSerializer(obj.transaction).data
+        elif isinstance(obj.transaction, MinimumSharesDepositTransaction):
+            return MinimumSharesDepositTransactionSerializer(obj.transaction).data
+        return None

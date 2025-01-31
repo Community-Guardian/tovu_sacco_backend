@@ -16,7 +16,7 @@ class AccountAdmin(admin.ModelAdmin):
     list_display = ['user', 'account_number', 'account_balance', 'is_active', 'is_suspended', 'created']
     search_fields = ['user__username', 'account_number']
     list_filter = ['is_active', 'is_suspended', 'created']
-    readonly_fields = ['account_number', 'account_id', 'created', 'last_modified']
+    readonly_fields = ['account_number', 'account_minimum_shares_balance', 'account_balance', 'created', 'last_modified']
 
 
 @admin.register(NextOfKin)

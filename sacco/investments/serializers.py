@@ -5,15 +5,14 @@ from .models import InvestmentType, Investment, InvestmentAccount, UserInvestmen
 class InvestmentTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvestmentType
-        fields = ['id', 'name', 'description']
+        fields = '__all__'
 
 class InvestmentSerializer(serializers.ModelSerializer):
     investment_type = serializers.PrimaryKeyRelatedField(queryset=InvestmentType.objects.all())
 
     class Meta:
         model = Investment
-        fields = ['id', 'investment_type', 'amount_invested', 'current_value', 'return_on_investment', 
-                  'date_invested', 'maturity_date', 'description', 'is_active', 'profit_or_loss', 'roi_percentage']
+        fields = '__all__'
 
 class InvestmentAccountSerializer(serializers.ModelSerializer):
     total_investments = serializers.DecimalField(max_digits=15, decimal_places=2)

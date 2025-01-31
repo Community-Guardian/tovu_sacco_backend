@@ -103,9 +103,8 @@ class Account(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     kyc = models.OneToOneField(KYC, on_delete=models.DO_NOTHING, blank=True, null=True)
     account_balance = models.PositiveIntegerField(default=0)
-    account_minimum_shares_balance = models.PositiveIntegerField(default=0)
-    account_number = ShortUUIDField(length=10,primary_key=True, editable=False,  unique=True,max_length= 25, prefix="217", alphabet="1234567890" )
-    account_id = ShortUUIDField(length=7, unique=True,max_length= 25, prefix="DEX", alphabet="1234567890" )
+    account_minimum_shares_balance = models.PositiveIntegerField(default=0)  # one time fee you pay for each account to become a full member
+    account_number = ShortUUIDField(length=10,primary_key=True, editable=False,  unique=True,max_length= 25, prefix="ACC", alphabet="1234567890" )
     created = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     is_suspended = models.BooleanField(default=False)
