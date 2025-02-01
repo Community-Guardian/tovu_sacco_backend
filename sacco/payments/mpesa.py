@@ -19,7 +19,7 @@ class MpesaPaymentService(BasePaymentService):
                 amount=amount,
                 account_reference="Swift-Traders",
                 transaction_desc=description,
-                callback_url="https://api.swift-traders.co.ke/mpesa_callback/"
+                callback_url="https://tovusacco2.pythonanywhere.com/mpesa_callback/"
             )
             response_data = response.json()
             print("Payment response: ", response_data)
@@ -101,7 +101,7 @@ class MpesaPaymentService(BasePaymentService):
                 phone_number=phone_number,
                 amount=refund_amount,
                 remarks=f"Refund for transaction {payment.transaction_id}",
-                callback_url="https://api.swift-traders.co.ke/result/",
+                callback_url="https://tovusacco2.pythonanywhere.com/result/",
                 occasion="Refund"
             )
             response_data = response.json()

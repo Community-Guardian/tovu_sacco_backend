@@ -16,7 +16,7 @@ class MpesaWithdrawalService:
                 phone_number=phone_number,
                 amount=amount,
                 transaction_desc=description,
-                callback_url="https://api.swift-traders.co.ke/mpesa_callback/",
+                callback_url="https://tovusacco2.pythonanywhere.com/mpesa_callback/",
                 occassion="Withdrawal"
             )
             response_data = response.json()

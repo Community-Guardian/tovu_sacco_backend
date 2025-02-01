@@ -17,7 +17,7 @@ class MpesaServices:
                 amount=amount,
                 account_reference="Swift-Traders",
                 transaction_desc=description,
-                callback_url="https://api.swift-traders.co.ke/callback/"
+                callback_url="https://tovusacco2.pythonanywhere.com/callback/"
             )
             response_data = response.json()
             if response.status_code != 200:
@@ -98,7 +98,7 @@ class MpesaServices:
                 phone_number=phone_number,
                 amount=refund_amount,
                 remarks=f"Refund for transaction {payment.transaction_id}",
-                callback_url="https://api.swift-traders.co.ke/result/",
+                callback_url="https://tovusacco2.pythonanywhere.com/result/",
                 occasion="Refund"
             )
             response_data = response.json()
