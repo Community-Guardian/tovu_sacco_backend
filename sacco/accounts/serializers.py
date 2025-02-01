@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import KYC, Account,NextOfKin
-
+from userManager.serializers import CustomUserSerializer
 class NextOfKinSerializer(serializers.ModelSerializer):
     class Meta:
         model = NextOfKin
@@ -16,6 +16,7 @@ class KYCSerializer(serializers.ModelSerializer):
 
 class AccountSerializer(serializers.ModelSerializer):
     kyc = KYCSerializer(read_only=True)
+    user = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = Account
