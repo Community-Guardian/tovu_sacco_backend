@@ -161,13 +161,13 @@ class DepositTransactionViewSet(viewsets.ModelViewSet):
         try:
             payment_service = PaymentServiceFactory.get_payment_service(payment_method)
             transaction = payment_service.initiate_payment(phone_number, amount, description, request.user, account)
-            transaction.account = account
+            print(transaction)
             transaction.save()
             return Response({'transaction_id': transaction.transaction_id}, status=201)
         except ValueError as e:
             return Response({'error': str(e)}, status=400)
         except Exception as e:
-            return Response({'error': 'An error occurred while initiating the payment.'}, status=500)
+            return Response({'error': str(e)}, status=500)
 class LoanTransactionViewSet(viewsets.ModelViewSet):
     queryset = LoanTransaction.objects.all()
     serializer_class = LoanTransactionSerializer

@@ -35,6 +35,7 @@ class MpesaServices:
                 mpesa_merchant_request_id=response_data.get("MerchantRequestID"),
                 mpesa_phone_number=phone_number,
             )
+            transaction.save()
             logger.info(f"M-Pesa payment initiated, transaction ID: {transaction.transaction_id}")
             return transaction
 

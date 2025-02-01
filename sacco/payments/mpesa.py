@@ -39,8 +39,10 @@ class MpesaPaymentService(BasePaymentService):
                 mpesa_phone_number=phone_number,
                 mpesa_merchant_request_id=response_data.get("MerchantRequestID"),
             )
+            transaction.save()
+
             logger.info(f"M-Pesa payment initiated, transaction ID: {transaction.transaction_id}")
-            return response_data
+            return transaction
 
         except Exception as e:
             logger.error(f"Error initiating M-Pesa payment: {e}")
