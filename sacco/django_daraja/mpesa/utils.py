@@ -120,7 +120,8 @@ def generate_access_token_request(consumer_key = None, consumer_secret = None):
 	url = api_base_url() + 'oauth/v1/generate?grant_type=client_credentials'
 	consumer_key = consumer_key if consumer_key is not None else mpesa_config('MPESA_CONSUMER_KEY') 
 	consumer_secret = consumer_secret if consumer_secret is not None else mpesa_config('MPESA_CONSUMER_SECRET')
-
+	print(consumer_key)
+	print(consumer_secret)
 	try:
 		r = requests.get(url, auth=(consumer_key, consumer_secret))
 	except requests.exceptions.ConnectionError:

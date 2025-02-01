@@ -93,10 +93,9 @@ class MpesaClient:
 
 		timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
 		password = base64.b64encode((business_short_code + passkey + timestamp).encode('ascii')).decode('utf-8') 
-		transaction_type = 'CustomerPayBillOnline'
+		transaction_type = mpesa_config('TRANSACTION_TYPE')
 		party_a = phone_number
-		party_b = business_short_code
-
+		party_b = mpesa_config('PARTY_B')
 		data = {
 			'BusinessShortCode': business_short_code,
 			'Password': password,
