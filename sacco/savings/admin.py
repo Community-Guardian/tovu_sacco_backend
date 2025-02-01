@@ -21,7 +21,7 @@ class GoalAdmin(admin.ModelAdmin):
 
 @admin.register(Deposit)
 class DepositAdmin(admin.ModelAdmin):
-    list_display = ('goal__account', 'goal', 'amount', 'date', 'transaction_id')
+    list_display = ( 'goal', 'amount', 'date', 'transaction_id')
     search_fields = ('goal__name', 'account__user__username', 'transaction_id')
     list_filter = ('date', 'goal')
     readonly_fields = ('transaction_id', 'date')
