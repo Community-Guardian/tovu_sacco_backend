@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from .models import KYC, Account,NextOfKin
+from django.db import transaction
+from .models import KYC, Account, NextOfKin
 from userManager.serializers import CustomUserSerializer
-from django.db import IntegrityError
-from rest_framework.exceptions import ValidationError
+
 class NextOfKinSerializer(serializers.ModelSerializer):
     class Meta:
         model = NextOfKin
@@ -15,6 +15,7 @@ class KYCSerializer(serializers.ModelSerializer):
     class Meta:
         model = KYC
         fields = '__all__'
+
     def validate_id_number(self, value):
         if KYC.objects.filter(id_number=value).exclude(id=self.instance.id if self.instance else None).exists():
             raise serializers.ValidationError("This ID number is already in use.")
@@ -24,27 +25,33 @@ class KYCSerializer(serializers.ModelSerializer):
         if KYC.objects.filter(kra_pin=value).exclude(id=self.instance.id if self.instance else None).exists():
             raise serializers.ValidationError("This KRA PIN is already in use.")
         return value
+
+    def validate_user(self, value):
+        if self.instance:
+            if KYC.objects.filter(user=value).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError("KYC with this user already exists.")
+        else:
+            if KYC.objects.filter(user=value).exists():
+                raise serializers.ValidationError("KYC with this user already exists.")
+        return value
+
+    @transaction.atomic
     def update(self, instance, validated_data):
-        # Handle next_of_kin updates
         next_of_kin_data = validated_data.pop('next_of_kin', [])
+        existing_next_of_kin = {kin.id: kin for kin in instance.next_of_kin.all()}
 
-        # Update existing next_of_kin and add new ones
-        existing_next_of_kin = {kin.id: kin for kin in instance.next_of_kin.all()}  # Assuming related_name='next_of_kin'
-
+        # Update or create next_of_kin
         for kin_data in next_of_kin_data:
-            kin_id = kin_data.get('id', None)
-
+            kin_id = kin_data.get('id')
             if kin_id and kin_id in existing_next_of_kin:
-                # Update existing next_of_kin
                 kin_instance = existing_next_of_kin.pop(kin_id)
                 for attr, value in kin_data.items():
                     setattr(kin_instance, attr, value)
                 kin_instance.save()
             else:
-                # Create new next_of_kin
                 NextOfKin.objects.create(kyc=instance, **kin_data)
 
-        # Delete any next_of_kin not included in the update
+        # Delete removed next_of_kin
         for kin_to_delete in existing_next_of_kin.values():
             kin_to_delete.delete()
 
@@ -54,58 +61,36 @@ class KYCSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
-    def validate_user(self, value):
-        """Ensure the user isn't already linked to another KYC, except for the current instance."""
-        if self.instance:
-            # Exclude the current instance when checking for duplicates
-            if KYC.objects.filter(user=value).exclude(id=self.instance.id).exists():
-                raise serializers.ValidationError("KYC with this user already exists.")
-        else:
-            # Check for existing KYC only if it's a new record
-            if KYC.objects.filter(user=value).exists():
-                raise serializers.ValidationError("KYC with this user already exists.")
 
-        return value
 
 class AccountSerializer(serializers.ModelSerializer):
-    kyc = KYCSerializer(required=False)
-    user = CustomUserSerializer(required=False)
+    kyc = KYCSerializer(required=False, partial=True)
+    user = CustomUserSerializer(required=False, partial=True)
 
     class Meta:
         model = Account
         fields = '__all__'
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         kyc_data = validated_data.pop('kyc', None)
         user_data = validated_data.pop('user', None)
 
-        # Handle KYC updates
+        # Handle nested KYC updates
         if kyc_data:
-            kyc_instance = instance.kyc
-            if kyc_instance:
-                kyc_serializer = KYCSerializer(kyc_instance, data=kyc_data, partial=True)
-                kyc_serializer.is_valid(raise_exception=True)
-                kyc_serializer.save()
-            else:
-                # Create KYC if it doesn't exist
-                kyc_serializer = KYCSerializer(data=kyc_data)
-                kyc_serializer.is_valid(raise_exception=True)
-                kyc_instance = kyc_serializer.save()
-                instance.kyc = kyc_instance  # Associate with Account
+            kyc_instance = getattr(instance, 'kyc', None)
+            kyc_serializer = KYCSerializer(instance=kyc_instance, data=kyc_data, partial=True)
+            kyc_serializer.is_valid(raise_exception=True)
+            kyc_instance = kyc_serializer.save()
+            instance.kyc = kyc_instance
 
-        # Handle User updates
+        # Handle nested User updates
         if user_data:
-            user_instance = instance.user
-            if user_instance:
-                user_serializer = CustomUserSerializer(user_instance, data=user_data, partial=True)
-                user_serializer.is_valid(raise_exception=True)
-                user_serializer.save()
-            else:
-                # Create User if it doesn't exist
-                user_serializer = CustomUserSerializer(data=user_data)
-                user_serializer.is_valid(raise_exception=True)
-                user_instance = user_serializer.save()
-                instance.user = user_instance  # Associate with Account
+            user_instance = getattr(instance, 'user', None)
+            user_serializer = CustomUserSerializer(instance=user_instance, data=user_data, partial=True)
+            user_serializer.is_valid(raise_exception=True)
+            user_instance = user_serializer.save()
+            instance.user = user_instance
 
         # Update Account fields
         for attr, value in validated_data.items():
