@@ -17,12 +17,12 @@ class KYCSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate_id_number(self, value):
-        if KYC.objects.filter(id_number=value).exclude(id=self.instance.id if self.instance else None).exists():
+        if KYC.objects.filter(id_number=value).exclude(membership_number=self.instance.membership_number if self.instance else None).exists():
             raise serializers.ValidationError("This ID number is already in use.")
         return value
 
     def validate_kra_pin(self, value):
-        if KYC.objects.filter(kra_pin=value).exclude(id=self.instance.id if self.instance else None).exists():
+        if KYC.objects.filter(kra_pin=value).exclude(membership_number=self.instance.membership_number if self.instance else None).exists():
             raise serializers.ValidationError("This KRA PIN is already in use.")
         return value
 
@@ -55,7 +55,7 @@ class KYCSerializer(serializers.ModelSerializer):
         """Ensure the user isn't already linked to another KYC."""
         query = KYC.objects.filter(user=value)
         if self.instance:
-            query = query.exclude(id=self.instance.id)
+            query = query.exclude(user=self.instance.user)
         if query.exists():
             raise serializers.ValidationError("KYC with this user already exists.")
         return value
@@ -70,12 +70,14 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def update(self, instance, validated_data):
+        print('creation')
         kyc_data = validated_data.pop('kyc', None)
         user_data = validated_data.pop('user', None)
 
         # Update or create KYC
         if kyc_data:
             if instance.kyc:
+
                 KYCSerializer(instance.kyc, data=kyc_data, partial=True).is_valid(raise_exception=True)
                 KYCSerializer(instance.kyc, data=kyc_data, partial=True).save()
             else:
