@@ -15,8 +15,8 @@ class KYCSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AccountSerializer(serializers.ModelSerializer):
-    kyc = KYCSerializer(read_only=True)
-    user = CustomUserSerializer(read_only=True)
+    kyc = KYCSerializer()
+    user = CustomUserSerializer()
 
     class Meta:
         model = Account
