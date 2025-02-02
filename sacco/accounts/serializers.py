@@ -10,7 +10,7 @@ class NextOfKinSerializer(serializers.ModelSerializer):
 
 
 class KYCSerializer(serializers.ModelSerializer):
-    next_of_kin = NextOfKinSerializer(many=True)
+    next_of_kin = NextOfKinSerializer(many=True, required=False)
 
     class Meta:
         model = KYC
@@ -26,25 +26,33 @@ class KYCSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This KRA PIN is already in use.")
         return value
 
+    @transaction.atomic
+    def create(self, validated_data):
+        next_of_kin_data = validated_data.pop('next_of_kin', [])
+        kyc_instance = KYC.objects.create(**validated_data)
+
+        # Create Next of Kin entries if provided
+        for kin_data in next_of_kin_data:
+            NextOfKin.objects.create(kyc=kyc_instance, **kin_data)
+
+        return kyc_instance
+
     def update_next_of_kin(self, kyc_instance, next_of_kin_data):
         existing_kin_ids = [kin.get('id') for kin in next_of_kin_data if kin.get('id')]
-        # Delete next_of_kin not present in the update
         kyc_instance.next_of_kin.exclude(id__in=existing_kin_ids).delete()
 
         for kin_data in next_of_kin_data:
             kin_id = kin_data.get('id')
             if kin_id:
-                # Update existing NextOfKin
                 NextOfKin.objects.filter(id=kin_id, kyc=kyc_instance).update(**kin_data)
             else:
-                # Create new NextOfKin
                 NextOfKin.objects.create(kyc=kyc_instance, **kin_data)
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         next_of_kin_data = validated_data.pop('next_of_kin', [])
         self.update_next_of_kin(instance, next_of_kin_data)
 
-        # Update KYC fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -52,14 +60,12 @@ class KYCSerializer(serializers.ModelSerializer):
         return instance
 
     def validate_user(self, value):
-        """Ensure the user isn't already linked to another KYC."""
         query = KYC.objects.filter(user=value)
         if self.instance:
             query = query.exclude(user=self.instance.user)
         if query.exists():
             raise serializers.ValidationError("KYC with this user already exists.")
         return value
-
 
 class AccountSerializer(serializers.ModelSerializer):
     kyc = KYCSerializer(required=False)
