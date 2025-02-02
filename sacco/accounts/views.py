@@ -17,8 +17,11 @@ class KYCViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         # Create a mutable copy of request.data
         data = request.data.copy()
-        data['user'] = request.user.id  # Automatically assign the user to the KYC record
-        
+        user = request.user
+        if user.role == 'customer':
+            data['user'] = request.user.id  # Automatically assign the user to the KYC record
+        if not data.get('user'):
+            return Response({"detail": "User is required."}, status=status.HTTP_400_BAD_REQUEST)
         # Proceed with creating the object using the modified data
         request._full_data = data  # Override the original request data with the mutable data
 
