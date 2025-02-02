@@ -79,7 +79,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         if kyc_data:
             # Validate and update the KYC nested data
             kyc_serializer = KYCSerializer(instance.kyc, data=kyc_data, partial=True, context={'request': request})
-            kyc_serializer.is_valid(raise_exception=False)
+            kyc_serializer.is_valid(raise_exception=True)
             kyc_serializer.save()
 
             # Remove `kyc` from the data to ensure it's not passed to the Account serializer
@@ -90,7 +90,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         if user_data:
             # Validate and update the User nested data
             user_serializer = CustomUserSerializer(instance.user, data=user_data, partial=True, context={'request': request})
-            user_serializer.is_valid(raise_exception=False)
+            user_serializer.is_valid(raise_exception=True)
             user_serializer.save()
 
             # Remove `user` from the data to ensure it's not passed to the Account serializer
@@ -99,7 +99,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         # Now, handle the remaining fields for the Account model
         # We pass `partial=True` to allow updating only the provided fields
         serializer = self.get_serializer(instance, data=data, partial=True)
-        serializer.is_valid(raise_exception=False)
+        serializer.is_valid(raise_exception=True)
         serializer.save()  # Save the updated instance
 
         # Return the updated data in the response
