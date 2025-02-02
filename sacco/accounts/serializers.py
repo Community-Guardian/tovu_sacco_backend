@@ -54,7 +54,18 @@ class KYCSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+    def validate_user(self, value):
+        """Ensure the user isn't already linked to another KYC, except for the current instance."""
+        if self.instance:
+            # Allow the current instance to retain the same user
+            if self.instance.user == value:
+                return value
 
+        # Check for other KYC records with the same user
+        if KYC.objects.filter(user=value).exists():
+            raise serializers.ValidationError("KYC with this user already exists.")
+
+        return value
 class AccountSerializer(serializers.ModelSerializer):
     kyc = KYCSerializer(required=False)
     user = CustomUserSerializer(required=False)
