@@ -56,34 +56,48 @@ class KYCSerializer(serializers.ModelSerializer):
         return instance
 
 class AccountSerializer(serializers.ModelSerializer):
-    kyc = KYCSerializer()
-    user = CustomUserSerializer()
+    kyc = KYCSerializer(required=False)
+    user = CustomUserSerializer(required=False)
 
     class Meta:
         model = Account
         fields = '__all__'
 
     def update(self, instance, validated_data):
-        try:
-            kyc_data = validated_data.pop('kyc', None)
-            if kyc_data:
-                kyc_instance = instance.kyc
-                kyc_serializer = KYCSerializer(instance=kyc_instance, data=kyc_data, partial=True)
+        kyc_data = validated_data.pop('kyc', None)
+        user_data = validated_data.pop('user', None)
+
+        # Handle KYC updates
+        if kyc_data:
+            kyc_instance = instance.kyc
+            if kyc_instance:
+                kyc_serializer = KYCSerializer(kyc_instance, data=kyc_data, partial=True)
                 kyc_serializer.is_valid(raise_exception=True)
                 kyc_serializer.save()
+            else:
+                # Create KYC if it doesn't exist
+                kyc_serializer = KYCSerializer(data=kyc_data)
+                kyc_serializer.is_valid(raise_exception=True)
+                kyc_instance = kyc_serializer.save()
+                instance.kyc = kyc_instance  # Associate with Account
 
-            user_data = validated_data.pop('user', None)
-            if user_data:
-                user_instance = instance.user
-                user_serializer = CustomUserSerializer(instance=user_instance, data=user_data, partial=True)
+        # Handle User updates
+        if user_data:
+            user_instance = instance.user
+            if user_instance:
+                user_serializer = CustomUserSerializer(user_instance, data=user_data, partial=True)
                 user_serializer.is_valid(raise_exception=True)
                 user_serializer.save()
+            else:
+                # Create User if it doesn't exist
+                user_serializer = CustomUserSerializer(data=user_data)
+                user_serializer.is_valid(raise_exception=True)
+                user_instance = user_serializer.save()
+                instance.user = user_instance  # Associate with Account
 
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-            instance.save()
-
-        except IntegrityError as e:
-            raise ValidationError({"detail": "Unique constraint violation: " + str(e)})
+        # Update Account fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
 
         return instance
