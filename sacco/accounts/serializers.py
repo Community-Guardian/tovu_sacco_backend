@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import KYC, Account,NextOfKin
 from userManager.serializers import CustomUserSerializer
+from django.db import IntegrityError
+from rest_framework.exceptions import ValidationError
 class NextOfKinSerializer(serializers.ModelSerializer):
     class Meta:
         model = NextOfKin
@@ -13,7 +15,15 @@ class KYCSerializer(serializers.ModelSerializer):
     class Meta:
         model = KYC
         fields = '__all__'
+    def validate_id_number(self, value):
+        if KYC.objects.filter(id_number=value).exclude(id=self.instance.id if self.instance else None).exists():
+            raise serializers.ValidationError("This ID number is already in use.")
+        return value
 
+    def validate_kra_pin(self, value):
+        if KYC.objects.filter(kra_pin=value).exclude(id=self.instance.id if self.instance else None).exists():
+            raise serializers.ValidationError("This KRA PIN is already in use.")
+        return value
     def update(self, instance, validated_data):
         # Handle next_of_kin updates
         next_of_kin_data = validated_data.pop('next_of_kin', [])
@@ -54,25 +64,26 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def update(self, instance, validated_data):
-        # Handle KYC update
-        kyc_data = validated_data.pop('kyc', None)
-        if kyc_data:
-            kyc_instance = instance.kyc
-            for attr, value in kyc_data.items():
-                setattr(kyc_instance, attr, value)
-            kyc_instance.save()
+        try:
+            kyc_data = validated_data.pop('kyc', None)
+            if kyc_data:
+                kyc_instance = instance.kyc
+                kyc_serializer = KYCSerializer(instance=kyc_instance, data=kyc_data, partial=True)
+                kyc_serializer.is_valid(raise_exception=True)
+                kyc_serializer.save()
 
-        # Handle User update
-        user_data = validated_data.pop('user', None)
-        if user_data:
-            user_instance = instance.user
-            for attr, value in user_data.items():
-                setattr(user_instance, attr, value)
-            user_instance.save()
+            user_data = validated_data.pop('user', None)
+            if user_data:
+                user_instance = instance.user
+                user_serializer = CustomUserSerializer(instance=user_instance, data=user_data, partial=True)
+                user_serializer.is_valid(raise_exception=True)
+                user_serializer.save()
 
-        # Handle Account update
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+
+        except IntegrityError as e:
+            raise ValidationError({"detail": "Unique constraint violation: " + str(e)})
 
         return instance
