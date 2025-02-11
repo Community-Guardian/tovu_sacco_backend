@@ -13,15 +13,7 @@ class InvestmentViewSet(viewsets.ModelViewSet):
     queryset = Investment.objects.all()
     serializer_class = InvestmentSerializer
 
-    def get_queryset(self):
-        """
-        Limit the investments to those associated with the user's account if the user is a customer.
-        """
-        user = self.request.user
-        if user.role == 'customer':  # Assuming 'role' is a field in your user model
-            investment_ids = UserInvestment.objects.filter(account__account__user=user).values_list('investment__id', flat=True)
-            return self.queryset.filter(id__in=investment_ids)
-        return self.queryset
+
 
 class InvestmentAccountViewSet(viewsets.ModelViewSet):
     queryset = InvestmentAccount.objects.all()
