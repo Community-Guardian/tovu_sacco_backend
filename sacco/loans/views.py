@@ -13,12 +13,13 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import status,filters
 import logging
 from rest_framework.exceptions import ValidationError
 from django.db import models
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from .filters import LoanFilter, LoanHistoryFilter, LoanPaymentFilter 
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class LoanTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = LoanType.objects.all()
     serializer_class = LoanTypeSerializer
+
 
 
 
@@ -47,6 +49,11 @@ class LoanViewSet(viewsets.ModelViewSet):
     queryset = Loan.objects.select_related("account", "loan_type")\
         .prefetch_related("loan_type__requirements")  # Prefetch requirements from LoanType
     serializer_class = LoanSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = LoanFilter
+    ordering_fields = ["amount_requested", "date_requested", "date_approved"]
+    ordering = ["-date_requested"]
+
 
 
     def get_queryset(self):
@@ -93,6 +100,10 @@ class LoanPaymentViewSet(viewsets.ModelViewSet):
     """
     queryset = LoanPayment.objects.select_related("loan")
     serializer_class = LoanPaymentSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = LoanPaymentFilter
+    ordering_fields = ["amount", "payment_date"]
+    ordering = ["-payment_date"]
 
 
     def get_queryset(self):
@@ -177,5 +188,6 @@ class LoanHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = LoanHistorySerializer
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ["loan__id"]
+    filterset_class = LoanHistoryFilter
     ordering_fields = ["timestamp"]
+    ordering = ["-timestamp"]

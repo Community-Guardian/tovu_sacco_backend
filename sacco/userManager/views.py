@@ -6,11 +6,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from allauth.account.models import EmailConfirmationHMAC, EmailConfirmation
-from rest_framework import viewsets, status,permissions
+from rest_framework import viewsets, status,filters,permissions
 from rest_framework.response import Response
 from django.contrib.auth.models import Group, Permission
 from .models import CustomUser
 from .serializers import CustomUserSerializer, GroupSerializer,ResendEmailVerificationSerializer, PermissionSerializer,CustomTokenRefreshSerializer
+from .filters import UserFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
@@ -113,16 +115,20 @@ class ResendEmailVerificationView(APIView):
 
         return Response({'detail': _('Email not found or already verified.')}, status=status.HTTP_400_BAD_REQUEST)
 
-
 class CustomUserViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing users.
     """
-    queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]  # Ensure correct filter backend import
+    filterset_class = UserFilter
+    ordering_fields = ["last_login", "date_joined"]  # Use 'date_joined' (from AbstractUser) 
+    ordering = ["-date_joined"]  # Default ordering by newest users first
 
     def get_queryset(self):
-        # Return only the data of the authenticated user, unless the user is an admin
+        """
+        Return only the data of the authenticated user, unless the user is an admin.
+        """
         user = self.request.user
         if user.is_staff:
             return CustomUser.objects.all()  # Admins can see all users
@@ -135,7 +141,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         obj = super().get_object()
         user = self.request.user
 
-        # If the user is not an admin and is trying to access another user's data, raise an error
         if not user.is_staff and obj.id != user.id:
             raise PermissionDenied(detail="You do not have permission to access this user's data.")
 

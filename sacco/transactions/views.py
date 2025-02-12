@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, status,filters,permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import TransferTransaction, WithdrawTransaction, RefundTransaction, DepositTransaction, LoanTransaction, InvestmentTransaction, SavingTransaction, MinimumSharesDepositTransaction, AuditTransaction,Loan
@@ -11,11 +11,18 @@ from accounts.models import Account
 from savings.models import Goal
 from django.utils import timezone
 from .models import InvestmentTransaction, Investment
-
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import InvestmentTransactionFilter, BaseTransactionFilter, SavingTransactionFilter, LoanTransactionFilter, RefundTransactionFilter, DepositTransactionFilter, WithdrawTransactionFilter, TransferTransactionFilter, MinimumSharesDepositTransactionFilter
 class TransferTransactionViewSet(viewsets.ModelViewSet):
     queryset = TransferTransaction.objects.all()
     serializer_class = TransferTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = TransferTransactionFilter
+    search_fields = ['sender_account', 'receiver_account', 'sender_goal', 'receiver_goal']
+    ordering_fields = ['sender_account', 'receiver_account', 'sender_goal', 'receiver_goal']
+    ordering = ['-date']
 
     @action(detail=False, methods=['post'])
     def create_transfer(self, request):
@@ -105,6 +112,12 @@ class WithdrawTransactionViewSet(viewsets.ModelViewSet):
     serializer_class = WithdrawTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = WithdrawTransactionFilter
+    search_fields = ['account']
+    ordering_fields = ['account', 'date']
+    ordering = ['-date']
+
     @action(detail=False, methods=['post'])
     def initiate_withdrawal(self, request):
         data = request.data
@@ -138,10 +151,23 @@ class RefundTransactionViewSet(viewsets.ModelViewSet):
     serializer_class = RefundTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = RefundTransactionFilter
+    search_fields = ['account']
+    ordering_fields = ['account', 'date']
+    ordering = ['-date']
+
 class DepositTransactionViewSet(viewsets.ModelViewSet):
     queryset = DepositTransaction.objects.all()
     serializer_class = DepositTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = DepositTransactionFilter
+    search_fields = ['account']
+    ordering_fields = ['account', 'date']
+    ordering = ['-date']
+    
 
     @action(detail=False, methods=['post'])
     def initiate_payment(self, request):
@@ -172,6 +198,12 @@ class LoanTransactionViewSet(viewsets.ModelViewSet):
     queryset = LoanTransaction.objects.all()
     serializer_class = LoanTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = LoanTransactionFilter
+    search_fields = ['loan']
+    ordering_fields = ['loan', 'date']
+    ordering = ['-date']
 
     @action(detail=False, methods=['post'])
     def pay_loan(self, request):
@@ -238,6 +270,12 @@ class InvestmentTransactionViewSet(viewsets.ModelViewSet):
     queryset = InvestmentTransaction.objects.all()
     serializer_class = InvestmentTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = InvestmentTransactionFilter
+    search_fields = ['investment']
+    ordering_fields = ['investment', 'date']
+    ordering = ['-date']
 
     @action(detail=False, methods=['post'])
     def deposit(self, request):
@@ -334,6 +372,12 @@ class SavingTransactionViewSet(viewsets.ModelViewSet):
     queryset = SavingTransaction.objects.all()
     serializer_class = SavingTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = SavingTransactionFilter
+    search_fields = ['goal']
+    ordering_fields = ['goal', 'date']
+    ordering = ['-date']
 
     @action(detail=False, methods=['post'])
     def deposit(self, request):
@@ -435,6 +479,12 @@ class MinimumSharesDepositTransactionViewSet(viewsets.ModelViewSet):
     serializer_class = MinimumSharesDepositTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = MinimumSharesDepositTransactionFilter
+    search_fields = ['description']
+    ordering_fields = ['description', 'date']
+    ordering = ['-date']
+
     @action(detail=False, methods=['post'])
     def initiate_payment(self, request):
         data = request.data
@@ -461,6 +511,11 @@ class AuditTransactionViewSet(viewsets.ModelViewSet):
     queryset = AuditTransaction.objects.all()
     serializer_class = AuditTransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['transaction_id'] 
+    ordering_fields = ['transaction_id', 'date']
+    ordering = ['-date']
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

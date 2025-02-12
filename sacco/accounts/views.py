@@ -1,11 +1,18 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from .models import KYC, Account, NextOfKin
 from .serializers import KYCSerializer, AccountSerializer, NextOfKinSerializer,CustomUserSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import NextOfKinFilter, KYCFilter, AccountFilter
 
 class KYCViewSet(viewsets.ModelViewSet):
     queryset = KYC.objects.all()
     serializer_class = KYCSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = KYCFilter
+    search_fields = ['membership_number', 'id_number', 'kra_pin']
+    ordering_fields = ['membership_number', 'id_number', 'kra_pin', 'marital_status', 'gender', 'kyc_submitted', 'kyc_confirmed']
+    ordering = ['-kyc_submitted']
 
     def get_queryset(self):
         user = self.request.user
@@ -31,6 +38,11 @@ class KYCViewSet(viewsets.ModelViewSet):
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = AccountFilter
+    search_fields = ['account_number', 'branch', 'account_type']
+    ordering_fields = ['account_number', 'branch', 'account_type', 'created_at', 'updated_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         user = self.request.user
@@ -110,6 +122,11 @@ class AccountViewSet(viewsets.ModelViewSet):
 class NextOfKinViewSet(viewsets.ModelViewSet):
     queryset = NextOfKin.objects.all()
     serializer_class = NextOfKinSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = NextOfKinFilter
+    search_fields = ['name', 'relationship', 'phone_number']
+    ordering_fields = ['name', 'relationship', 'phone_number', 'created_at', 'updated_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         user = self.request.user

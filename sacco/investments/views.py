@@ -1,21 +1,35 @@
-from rest_framework import viewsets
+from rest_framework import viewsets,filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum
 from .models import InvestmentType, Investment, InvestmentAccount, UserInvestment, Dividend
 from .serializers import InvestmentTypeSerializer, InvestmentSerializer, InvestmentAccountSerializer, UserInvestmentSerializer, DividendSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import InvestmentFilter, DividendFilter, InvestmentAccountFilter , UserInvestmentFilter
 
 class InvestmentTypeViewSet(viewsets.ModelViewSet):
     queryset = InvestmentType.objects.all()
     serializer_class = InvestmentTypeSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]  # Ensure correct filter backend import
+    filterset_class = InvestmentFilter
+    ordering_fields = ["name", "created_at", "updated_at"]  # Use 'date_joined' (from AbstractUser) 
+    ordering = ["-created_at"]  # Default ordering by newest users first
+
+
 
 class InvestmentViewSet(viewsets.ModelViewSet):
     queryset = Investment.objects.all()
     serializer_class = InvestmentSerializer
 
+
 class InvestmentAccountViewSet(viewsets.ModelViewSet):
     queryset = InvestmentAccount.objects.all()
     serializer_class = InvestmentAccountSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = InvestmentAccountFilter
+    search_fields = ['account', 'name']
+    ordering_fields = ['account', 'name', 'created_at', 'updated_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         """
@@ -29,6 +43,11 @@ class InvestmentAccountViewSet(viewsets.ModelViewSet):
 class UserInvestmentViewSet(viewsets.ModelViewSet):
     queryset = UserInvestment.objects.all()
     serializer_class = UserInvestmentSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = UserInvestmentFilter
+    search_fields = ['account', 'investment']
+    ordering_fields = ['account', 'investment', 'created_at', 'updated_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         """
@@ -42,6 +61,9 @@ class UserInvestmentViewSet(viewsets.ModelViewSet):
 class DividendViewSet(viewsets.ModelViewSet):
     queryset = Dividend.objects.all()
     serializer_class = DividendSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = DividendFilter
+    ordering = ["-date"]
 
     def get_queryset(self):
         """

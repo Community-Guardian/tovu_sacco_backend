@@ -2,11 +2,18 @@ from rest_framework import viewsets, permissions
 from .models import Goal, Deposit, SavingMilestone, SavingReminder, TransactionHistory, GoalNotification
 from .serializers import GoalSerializer, DepositSerializer, SavingMilestoneSerializer, SavingReminderSerializer, TransactionHistorySerializer, GoalNotificationSerializer, GoalProgressSerializer
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status , filters
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import GoalFilter, DepositFilter, SavingMilestoneFilter, TransactionHistoryFilter
 # View for Goal (ModelViewSet)
 class GoalViewSet(viewsets.ModelViewSet):
     queryset = Goal.objects.all()
     serializer_class = GoalSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = GoalFilter
+    search_fields = ['account', 'is_active', 'min_progress', 'max_progress', 'min_deadline', 'max_deadline']
+    ordering_fields = ['account', 'is_active', 'min_progress', 'max_progress', 'min_deadline', 'max_deadline']
+    ordering = ['-deadline']
 
     def get_queryset(self):
         # Only show goals for the authenticated user
@@ -23,6 +30,11 @@ class GoalViewSet(viewsets.ModelViewSet):
 class DepositViewSet(viewsets.ModelViewSet):
     queryset = Deposit.objects.all()
     serializer_class = DepositSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = DepositFilter
+    search_fields = ['goal']
+    ordering_fields = ['goal', 'date']
+    ordering = ['-date']
 
     def get_queryset(self):
         # Only show deposits for the authenticated user's goals
@@ -36,6 +48,11 @@ class DepositViewSet(viewsets.ModelViewSet):
 class SavingMilestoneViewSet(viewsets.ModelViewSet):
     queryset = SavingMilestone.objects.all()
     serializer_class = SavingMilestoneSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = SavingMilestoneFilter
+    search_fields = ['goal']
+    ordering_fields = ['goal', 'date']
+    ordering = ['-date']
 
     def get_queryset(self):
         # Only show milestones for the authenticated user's goals
@@ -49,6 +66,9 @@ class SavingMilestoneViewSet(viewsets.ModelViewSet):
 class SavingReminderViewSet(viewsets.ModelViewSet):
     queryset = SavingReminder.objects.all()
     serializer_class = SavingReminderSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    ordering_fields = ['goal', 'date']
+    ordering = ['-date']
 
     def get_queryset(self):
         # Only show reminders for the authenticated user's goals
@@ -62,6 +82,11 @@ class SavingReminderViewSet(viewsets.ModelViewSet):
 class TransactionHistoryViewSet(viewsets.ModelViewSet):
     queryset = TransactionHistory.objects.all()
     serializer_class = TransactionHistorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = TransactionHistoryFilter
+    search_fields = ['account']
+    ordering_fields = ['account', 'date']
+    ordering = ['-date']
 
     def get_queryset(self):
         # Filter transaction history based on the authenticated user's goals
@@ -87,6 +112,10 @@ class GoalNotificationViewSet(viewsets.ModelViewSet):
 # View to update the goal progress (Custom Update View)
 class GoalProgressUpdateView(viewsets.ViewSet):
     queryset = GoalNotification.objects.all()
+    serializer_class = GoalProgressSerializer
+
+    permission_classes = [permissions.IsAuthenticated]
+    
 
     def update(self, request, pk=None):
         try:

@@ -8,39 +8,6 @@ from phonenumber_field.modelfields import PhoneNumberField
 from django.conf import settings
 import os
 
-ACCOUNT_STATUS = (
-    ("active", "Active"),
-    ("pending", "Pending"),
-    ("in-active", "In-active")
-)
-
-MARITAL_STATUS = (
-    ("married", "Married"),
-    ("single", "Single"),
-    ("other", "Other")
-)
-
-GENDER = (
-    ("male", "Male"),
-    ("female", "Female"),
-    ("other", "Other")
-)
-
-
-IDENTITY_TYPE = (
-    ("national_id_card", "National ID Card"),
-    ("drivers_licence", "Drives Licence"),
-    ("international_passport", "International Passport")
-)
-
-EMPLOYMENT_STATUS = (
-    ("unemployed", "Unemployed"),
-    ("self_employed", "Self Employed"),
-    ("employed", "Employed"),
-    ("student", "Student"),
-    ("retired", "Retired"),
-    ("other", "Other")
-)
 def user_directory_path(instance, filename):
     ext = filename.split(".")[-1]
     filename = f"{instance.user.id}_{uuid.uuid4()}.{ext}"
@@ -53,6 +20,41 @@ class KYC(models.Model):
     )
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=1000)
+    MARITAL_STATUS = (
+    ("married", "Married"),
+    ("single", "Single"),
+    ("other", "Other")
+    )
+        
+    ACCOUNT_STATUS = (
+        ("active", "Active"),
+        ("pending", "Pending"),
+        ("in-active", "In-active")
+    )
+
+
+
+    GENDER = (
+        ("male", "Male"),
+        ("female", "Female"),
+        ("other", "Other")
+    )
+
+
+    IDENTITY_TYPE = (
+        ("national_id_card", "National ID Card"),
+        ("drivers_licence", "Drives Licence"),
+        ("international_passport", "International Passport")
+    )
+
+    EMPLOYMENT_STATUS = (
+        ("unemployed", "Unemployed"),
+        ("self_employed", "Self Employed"),
+        ("employed", "Employed"),
+        ("student", "Student"),
+        ("retired", "Retired"),
+        ("other", "Other")
+    )
     marital_status = models.CharField(choices=MARITAL_STATUS, max_length=40)
     gender = models.CharField(choices=GENDER, max_length=40)
     identity_type = models.CharField(choices=IDENTITY_TYPE, max_length=140)

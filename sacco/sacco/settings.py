@@ -94,22 +94,22 @@ WSGI_APPLICATION = 'sacco.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': config('DB_NAME'),
+#         'USER': config('DB_USER'),
+#         'PASSWORD': config('DB_PASSWORD'),
+#         'HOST': config('DB_HOST'),
+#         'PORT': config('DB_PORT'),
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -148,8 +148,8 @@ AUTH_USER_MODEL = 'userManager.CustomUser'
 
 # Django sites framework
 SITE_ID = 1
-SITENAME = "sacco"
-SITE_DOMAIN = config('SITE_DOMAIN', default="tovusacco.com")
+SITENAME = config('SITENAME', default="Admin")
+SITE_DOMAIN = config('SITE_DOMAIN', default="admin.com")
 
 # Default admin password
 ADMIN_PASSWORD = config('ADMIN_PASSWORD', default='user@12345')
@@ -189,13 +189,13 @@ ACCOUNT_PASSWORD_MIN_LENGTH = 8
 
 # Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = config('EMAIL_HOST')
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
+EMAIL_USE_TLS = False  # Ensure this is False
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = 'Tovu Sacco <no-reply@tovusacco.com>'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ACCOUNT_EMAIL_SUBJECT_PREFIX = 'Tovu Sacco'
 
 # Mpesa credentials
@@ -210,6 +210,7 @@ MPESA_ENVIRONMENT = config('MPESA_ENVIRONMENT')
 PARTY_B=config('PARTY_B')
 TRANSACTION_TYPE=config('TRANSACTION_TYPE')
 # REST Framework configuration
+# REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
@@ -219,14 +220,15 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,  # Set the default page size
 }
-
 JAZZMIN_SETTINGS = {
-    "site_title": "Sacco Backend",
-    "site_header": "Sacco Backend",
-    "site_brand": "Sacco ",
-    "welcome_sign": "Welcome to the Tovu Sacco Backend",
-    "copyright": "Sacco Backend",
+    "site_title": f"{SITENAME} Backend",
+    "site_header": f"{SITENAME} Backend",
+    "site_brand": f"{SITENAME} ",
+    "welcome_sign": f"Welcome to the {SITENAME} Backend",
+    "copyright": f"{SITENAME} Backend",
     "show_sidebar": True,
     "navigation_expanded": True,
     "icons": {
@@ -234,7 +236,6 @@ JAZZMIN_SETTINGS = {
         "auth.user": "fas fa-user",
     },
 }
-
 REST_AUTH = {
     'LOGIN_SERIALIZER': 'dj_rest_auth.serializers.LoginSerializer',
     'TOKEN_SERIALIZER': 'dj_rest_auth.serializers.TokenSerializer',
@@ -260,19 +261,19 @@ REST_AUTH = {
     'SESSION_LOGIN': True,
     'USE_JWT': True,
 
-    'JWT_AUTH_COOKIE': None,
-    'JWT_AUTH_REFRESH_COOKIE': None,
+    'JWT_AUTH_COOKIE': 'access_token',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
     'JWT_AUTH_REFRESH_COOKIE_PATH': '/',
-    'JWT_AUTH_SECURE': False,
-    'JWT_AUTH_HTTPONLY': False,
+    'JWT_AUTH_SECURE': True,
+    'JWT_AUTH_HTTPONLY': True,
     'JWT_AUTH_SAMESITE': 'Lax',
     'JWT_AUTH_RETURN_EXPIRATION': False,
-    'JWT_AUTH_COOKIE_USE_CSRF': False,
+    'JWT_AUTH_COOKIE_USE_CSRF': True,
     'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,
 }
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
