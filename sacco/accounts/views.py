@@ -125,8 +125,8 @@ class NextOfKinViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = NextOfKinFilter
     search_fields = ['name', 'relationship', 'phone_number']
-    ordering_fields = ['name', 'relationship', 'phone_number', 'created_at', 'updated_at']
-    ordering = ['-created_at']
+    ordering_fields = ['name', 'relationship', 'phone_number', 'kyc__created_at', 'kyc__updated_at']
+    ordering = ['-kyc__created_at']
 
     def get_queryset(self):
         user = self.request.user

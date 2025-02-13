@@ -51,8 +51,8 @@ class SavingMilestoneViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = SavingMilestoneFilter
     search_fields = ['goal']
-    ordering_fields = ['goal', 'date']
-    ordering = ['-date']
+    ordering_fields = ['goal', 'milestone_date']
+    ordering = ['-milestone_date']
 
     def get_queryset(self):
         # Only show milestones for the authenticated user's goals
@@ -67,8 +67,8 @@ class SavingReminderViewSet(viewsets.ModelViewSet):
     queryset = SavingReminder.objects.all()
     serializer_class = SavingReminderSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    ordering_fields = ['goal', 'date']
-    ordering = ['-date']
+    ordering_fields = ['goal', 'reminder_date']
+    ordering = ['-reminder_date']
 
     def get_queryset(self):
         # Only show reminders for the authenticated user's goals

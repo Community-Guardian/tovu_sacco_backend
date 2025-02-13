@@ -11,15 +11,17 @@ class InvestmentTypeViewSet(viewsets.ModelViewSet):
     queryset = InvestmentType.objects.all()
     serializer_class = InvestmentTypeSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]  # Ensure correct filter backend import
-    filterset_class = InvestmentFilter
-    ordering_fields = ["name", "created_at", "updated_at"]  # Use 'date_joined' (from AbstractUser) 
-    ordering = ["-created_at"]  # Default ordering by newest users first
-
+    ordering_fields = ["name", "id"]  
+    ordering = ["-id"]  
 
 
 class InvestmentViewSet(viewsets.ModelViewSet):
     queryset = Investment.objects.all()
     serializer_class = InvestmentSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]  # Ensure correct filter backend import
+    filterset_class = InvestmentFilter
+    ordering_fields = ["name", "date_invested"]  
+    ordering = ["-date_invested"]  # Default ordering by newest users first
 
 
 class InvestmentAccountViewSet(viewsets.ModelViewSet):
@@ -63,7 +65,7 @@ class DividendViewSet(viewsets.ModelViewSet):
     serializer_class = DividendSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = DividendFilter
-    ordering = ["-date"]
+    ordering = ["-date_distributed"]
 
     def get_queryset(self):
         """

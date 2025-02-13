@@ -37,8 +37,8 @@ def create_kyc_notification(sender, instance, created, **kwargs):
 def create_next_of_kin_notification(sender, instance, created, **kwargs):
     if created:
         UserNotification.objects.create(
-            user=instance.account.user,
-            account=instance.account,
+            user=instance.kyc.user,
+            account=instance.kyc.account,
             title="Next of Kin Added",
             message="A new next of kin has been added to your account.",
             notification_type="info",

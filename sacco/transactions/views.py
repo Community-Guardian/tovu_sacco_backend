@@ -514,8 +514,8 @@ class AuditTransactionViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['transaction_id'] 
-    ordering_fields = ['transaction_id', 'date']
-    ordering = ['-date']
+    ordering_fields = ['transaction_id', 'updated_at']
+    ordering = ['-updated_at']
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
