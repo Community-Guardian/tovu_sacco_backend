@@ -103,7 +103,7 @@ class NextOfKin(models.Model):
         return f"{self.name} ({self.relationship}) - {self.kyc.user}"
 class Account(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    kyc = models.OneToOneField(KYC, on_delete=models.DO_NOTHING, blank=True, null=True)
+    kyc = models.OneToOneField(KYC, on_delete=models.CASCADE, blank=True, null=True)
     account_balance = models.PositiveIntegerField(default=0)
     account_minimum_shares_balance = models.PositiveIntegerField(default=0)  # one time fee you pay for each account to become a full member
     account_number = ShortUUIDField(length=10,primary_key=True, editable=False,  unique=True,max_length= 25, prefix="ACC", alphabet="1234567890" )

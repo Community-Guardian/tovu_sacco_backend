@@ -42,7 +42,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     filterset_class = AccountFilter
     search_fields = ['account_number', 'branch', 'account_type']
     ordering_fields = ['account_number', 'branch', 'account_type', 'created_at', 'updated_at']
-    ordering = ['-created_at']
+    ordering = ['-created']
 
     def get_queryset(self):
         user = self.request.user

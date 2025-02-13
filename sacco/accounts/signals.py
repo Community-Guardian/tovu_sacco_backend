@@ -4,6 +4,7 @@ from .models import Account,KYC
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.core.mail import send_mail
+from userManager.models import CustomUser
 
 @receiver(post_save, sender=Account)
 def account_created(sender, instance, created, **kwargs):
@@ -32,3 +33,8 @@ def kyc_created(sender, instance, created, **kwargs):
     if created:
         # Create an account automatically when KYC is created
         Account.objects.get_or_create(user=instance.user, kyc=instance)
+        user = CustomUser.objects.get(email=instance.user.email)
+        user.first_name = instance.full_name.split()[0]
+        user.last_name = instance.full_name.split()[1]
+        user.save()
+        

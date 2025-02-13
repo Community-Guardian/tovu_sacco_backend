@@ -283,24 +283,13 @@ def create_reminder_notification(sender, instance, created, **kwargs):
         )
 from userManager.models import CustomUser
 
-@receiver(post_save, sender=CustomUser)
-def create_user_registration_notification(sender, instance, created, **kwargs):
-    if created:
-        UserNotification.objects.create(
-            user=instance,
-            title="User Registration",
-            message=f"Welcome {instance.username}, your account has been successfully created.",
-            notification_type="success",
-            user_action="user_registration"
-        )
-
-@receiver(post_save, sender=CustomUser)
-def update_user_profile_notification(sender, instance, created, **kwargs):
-    if not created:
-        UserNotification.objects.create(
-            user=instance,
-            title="Profile Updated",
-            message=f"Your profile has been successfully updated.",
-            notification_type="info",
-            user_action="profile_update"
-        )
+# @receiver(post_save, sender=CustomUser)
+# def update_user_profile_notification(sender, instance, created, **kwargs):
+#     if not created:
+#         UserNotification.objects.create(
+#             user=instance,
+#             title="Profile Updated",
+#             message=f"Your profile has been successfully updated.",
+#             notification_type="info",
+#             user_action="profile_update"
+#         )

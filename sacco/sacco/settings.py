@@ -162,7 +162,25 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # cors configurations
-CORS_ALLOW_ALL_ORIGINS = True
+# Allow frontend to send credentials (cookies, auth headers)
+CORS_ALLOW_CREDENTIALS = True  # Add this line
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://192.168.0.105",  # If accessing from LAN
+]
+
+# Allow all headers and methods
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+    'X-Requested-With',
+    'accept',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-xsrf-token',
+]
 
 CORS_ALLOW_METHODS = [
     'GET',
@@ -171,12 +189,6 @@ CORS_ALLOW_METHODS = [
     'PATCH',
     'DELETE',
     'OPTIONS',
-]
-
-CORS_ALLOW_HEADERS = [
-    'content-type',
-    'authorization',
-    'X-Requested-With',
 ]
 
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
@@ -218,7 +230,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
+        'rest_framework.permissions.DjangoModelPermissions',
     ],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -265,8 +277,8 @@ REST_AUTH = {
     'JWT_AUTH_COOKIE': 'access_token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
     'JWT_AUTH_REFRESH_COOKIE_PATH': '/',
-    'JWT_AUTH_SECURE': True,
-    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SECURE': False,
+    'JWT_AUTH_HTTPONLY': False,
     'JWT_AUTH_SAMESITE': 'Lax',
     'JWT_AUTH_RETURN_EXPIRATION': False,
     'JWT_AUTH_COOKIE_USE_CSRF': True,

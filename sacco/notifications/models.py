@@ -32,6 +32,11 @@ class UserNotification(Notification):
     """
     Model for user-specific notifications.
     """
+    NOTIFICATION_TYPES = (
+    ('info', 'Info'),
+    ('warning', 'Warning'),
+    ('success', 'Success'),
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_notifications', limit_choices_to={'role': 'customer'})
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='user_notifications')
     user_action = models.CharField(max_length=100, blank=True, null=True)  # E.g., 'deposit', 'withdrawal'
@@ -43,6 +48,11 @@ class AdminNotification(Notification):
     """
     Model for admin-specific notifications.
     """
+    NOTIFICATION_TYPES = (
+    ('info', 'Info'),
+    ('warning', 'Warning'),
+    ('success', 'Success'),
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_notifications', limit_choices_to={'role': 'admin'})
     admin_action = models.CharField(max_length=100, blank=True, null=True)  # E.g., 'user_registration', 'loan_approval'
 
