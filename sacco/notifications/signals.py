@@ -101,17 +101,6 @@ def create_admin_notification(sender, instance, created, **kwargs):
             admin_action="admin_account_creation"
         )
 
-@receiver(post_save, sender=Investment)
-def create_investment_notification(sender, instance, created, **kwargs):
-    if created:
-        UserNotification.objects.create(
-            user=instance.account.user,
-            account=instance.account,
-            title="New Investment Created",
-            message=f"A new investment '{instance.investment_type.name}' has been created.",
-            notification_type="info",
-            user_action="investment_creation"
-        )
 
 @receiver(post_save, sender=UserInvestment)
 def create_user_investment_notification(sender, instance, created, **kwargs):

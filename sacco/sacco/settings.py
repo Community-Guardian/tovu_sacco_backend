@@ -95,22 +95,22 @@ WSGI_APPLICATION = 'sacco.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': config('DB_NAME'),
-#         'USER': config('DB_USER'),
-#         'PASSWORD': config('DB_PASSWORD'),
-#         'HOST': config('DB_HOST'),
-#         'PORT': config('DB_PORT'),
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -164,11 +164,7 @@ AUTHENTICATION_BACKENDS = [
 # cors configurations
 # Allow frontend to send credentials (cookies, auth headers)
 CORS_ALLOW_CREDENTIALS = True  # Add this line
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://192.168.0.105",  # If accessing from LAN
-]
+CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", "").split(",")
 
 # Allow all headers and methods
 CORS_ALLOW_HEADERS = [
