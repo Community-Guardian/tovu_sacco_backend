@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'loans',
     'investments',
     'savings',
+    'notifications',
 ]
 
 MIDDLEWARE = [
