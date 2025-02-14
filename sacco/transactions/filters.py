@@ -24,7 +24,7 @@ class BaseTransactionFilter(django_filters.FilterSet):
     ])
     start_date = django_filters.DateTimeFilter(field_name="date", lookup_expr="gte")
     end_date = django_filters.DateTimeFilter(field_name="date", lookup_expr="lte")
-
+    transaction_id = django_filters.CharFilter(lookup_expr="iexact")
     class Meta:
         fields = ["amount", "status", "transaction_type", "payment_method", "date"]
 
