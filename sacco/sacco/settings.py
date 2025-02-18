@@ -164,8 +164,8 @@ AUTHENTICATION_BACKENDS = [
 # cors configurations
 # Allow frontend to send credentials (cookies, auth headers)
 CORS_ALLOW_CREDENTIALS = True  # Add this line
-CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", "").split(",")
-
+# CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", "").split(",")
+CORS_ALLOW_ALL_ORIGINS = True
 # Allow all headers and methods
 CORS_ALLOW_HEADERS = [
     'content-type',
