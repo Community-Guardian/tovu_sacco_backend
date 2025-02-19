@@ -56,8 +56,6 @@ class LoanSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         # check if request is being mace by account owner
-        if self.context["request"].user != data["account"].user or self.context["request"].user.role == "admin":
-            raise serializers.ValidationError("You are not authorized to make this request.")
         # Safely check if 'loan_type' exists in the data
         loan_type = data.get("loan_type")
 
