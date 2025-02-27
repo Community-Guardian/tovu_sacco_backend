@@ -27,8 +27,8 @@ class CustomRegisterSerializer(RegisterSerializer):
         except IntegrityError as e:
             if 'UNIQUE constraint failed' in str(e):
                 raise ValidationError({"email": "A user with this email already exists."})
-            raise ValidationError({"email": "A user with this email already exists."})
-            # raise ValidationError({"detail": "A database error occurred."})
+            # raise ValidationError({"email": "A user with this email already exists."})
+            raise ValidationError({"detail": "A database error occurred."})
 
     def custom_signup(self, request, user):
         user.role = self.validated_data.get('role')
