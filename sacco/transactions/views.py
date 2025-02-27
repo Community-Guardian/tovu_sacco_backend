@@ -12,7 +12,9 @@ from savings.models import Goal
 from django.utils import timezone
 from .models import InvestmentTransaction, Investment
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth import get_user_model
 from .filters import InvestmentTransactionFilter, BaseTransactionFilter, SavingTransactionFilter, LoanTransactionFilter, RefundTransactionFilter, DepositTransactionFilter, WithdrawTransactionFilter, TransferTransactionFilter, MinimumSharesDepositTransactionFilter
+User = get_user_model()
 class TransferTransactionViewSet(viewsets.ModelViewSet):
     queryset = TransferTransaction.objects.all()
     serializer_class = TransferTransactionSerializer
@@ -23,6 +25,13 @@ class TransferTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['sender_account', 'receiver_account', 'sender_goal', 'receiver_goal']
     ordering_fields = ['sender_account', 'receiver_account', 'sender_goal', 'receiver_goal']
     ordering = ['-date']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
 
     @action(detail=False, methods=['post'])
     def create_transfer(self, request):
@@ -117,7 +126,12 @@ class WithdrawTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['account']
     ordering_fields = ['account', 'date']
     ordering = ['-date']
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
     @action(detail=False, methods=['post'])
     def initiate_withdrawal(self, request):
         data = request.data
@@ -156,7 +170,12 @@ class RefundTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['account']
     ordering_fields = ['account', 'date']
     ordering = ['-date']
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
 class DepositTransactionViewSet(viewsets.ModelViewSet):
     queryset = DepositTransaction.objects.all()
     serializer_class = DepositTransactionSerializer
@@ -168,7 +187,12 @@ class DepositTransactionViewSet(viewsets.ModelViewSet):
     ordering_fields = ['account', 'date']
     ordering = ['-date']
     
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
     @action(detail=False, methods=['post'])
     def initiate_payment(self, request):
         data = request.data
@@ -204,7 +228,12 @@ class LoanTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['loan']
     ordering_fields = ['loan', 'date']
     ordering = ['-date']
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
     @action(detail=False, methods=['post'])
     def pay_loan(self, request):
         data = request.data
@@ -276,7 +305,12 @@ class InvestmentTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['investment']
     ordering_fields = ['investment', 'date']
     ordering = ['-date']
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
     @action(detail=False, methods=['post'])
     def deposit(self, request):
         data = request.data
@@ -378,7 +412,12 @@ class SavingTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['goal']
     ordering_fields = ['goal', 'date']
     ordering = ['-date']
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
     @action(detail=False, methods=['post'])
     def deposit(self, request):
         data = request.data
@@ -484,7 +523,12 @@ class MinimumSharesDepositTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['description']
     ordering_fields = ['description', 'date']
     ordering = ['-date']
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
     @action(detail=False, methods=['post'])
     def initiate_payment(self, request):
         data = request.data
@@ -516,7 +560,12 @@ class AuditTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['transaction_id'] 
     ordering_fields = ['transaction_id', 'updated_at']
     ordering = ['-updated_at']
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = User.objects.get(pk=self.request.user.id)
+        if user.role == 'customer':
+            return queryset.filter(user=self.request.user)
+        return queryset
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         # Ensure AuditTransaction deletes correctly
