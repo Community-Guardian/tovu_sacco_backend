@@ -52,7 +52,7 @@ class LoanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Loan
         fields = "__all__"
-        read_only_fields = ["status", "date_requested", "date_approved"]
+        read_only_fields = ["date_requested", "date_approved"]
 
     def validate(self, data):
         # check if request is being mace by account owner
