@@ -27,7 +27,7 @@ def create_default_groups_and_admin(sender, **kwargs):
     # Define groups and permissions
     groups = {
         "Admin": ["add_customuser", "change_customuser", "delete_customuser", "view_customuser"],
-        "Editor": ["view_customuser", "change_customuser"],
+        "Manager": ["view_customuser", "change_customuser"],
         "Customer": ["view_customuser"],
     }
 
